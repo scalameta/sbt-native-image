@@ -1,0 +1,1 @@
+{"name":"sbt","version":"1.4.0-M2","bspVersion":"2.0.0-M5","languages":["scala"],"argv":["/opt/twitter_mde/package/TwitterJDK8/3ad6248682929e8c8e39b22e23933d963af6d91dfa567d0498db923eb05e7e77/Contents/Home/jre/bin/java","-Xms100m","-Xmx100m","-classpath","/usr/local/Cellar/sbt/1.3.3/libexec/bin/sbt-launch.jar","xsbt.boot.Boot","-bsp"]}
