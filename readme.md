@@ -1,4 +1,4 @@
-# sbt-native-image: generate native-image binaries with sbt
+# Generate native-image binaries with sbt
 
 This plugin makes it easy to generate native-image binaries with sbt. Key
 features:
