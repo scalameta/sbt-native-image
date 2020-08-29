@@ -13,13 +13,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [macOS-latest, ubuntu-latest]
-        # Replace "example" with the name your binary
-        binary: example/target/native-image/example
         include:
+          # Replace "example" with the name your binary
           - os: macOS-latest
             artifact: example-x86_64-apple-darwin
+            binary: example/target/native-image/example
           - os: ubuntu-latest
             artifact: example-x86_64-pc-linux
+            binary: example/target/native-image/example
     steps:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v6
