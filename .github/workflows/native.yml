@@ -1,0 +1,40 @@
+name: Native Image
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  release:
+    types: [published]
+jobs:
+  native-image:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macOS-latest, ubuntu-latest]
+        include:
+          - os: macOS-latest
+            artifact: example-x86_64-apple-darwin
+          - os: ubuntu-latest
+            artifact: example-x86_64-pc-linux
+    steps:
+      - uses: actions/checkout@v2
+      - uses: olafurpg/setup-scala@v6
+        with:
+          java-version: graalvm-ce-java11@20.1.0
+      - run: git fetch --tags || true
+      - run: gu install native-image
+      - run: sbt 'example/nativeImageCopy ${{ matrix.artifact }}'
+      - uses: actions/upload-artifact@master
+        with:
+          path: ${{ matrix.artifact }}
+      - name: Upload release
+        if: github.event_name == 'release'
+        uses: actions/upload-release-asset@v1.0.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          path: ${{ matrix.artifact }}
+          asset_content_type: application/zip
