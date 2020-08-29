@@ -27,8 +27,13 @@ lazy val plugin = project
     moduleName := "sbt-native-image",
     sbtPlugin := true,
     sbtVersion.in(pluginCrossBuild) := "1.0.0",
-    crossScalaVersions := List(scala212)
+    crossScalaVersions := List(scala212),
+    buildInfoPackage := "sbtnativeimage",
+    buildInfoKeys := Seq[BuildInfoKey](
+      version
+    )
   )
+  .enablePlugins(BuildInfoPlugin)
 
 lazy val example = project
   .in(file("example"))
