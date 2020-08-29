@@ -20,9 +20,11 @@ features:
 
 First, add the sbt plugin to your build in `project/plugins.sbt`.
 
+[![](https://img.shields.io/github/v/tag/scalameta/sbt-native-image?include_prereleases&style=for-the-badge)](https://github.com/scalameta/sbt-native-image/releases)
+
 ```scala
 // project/plugins.sbt
-addSbtPlugin("org.scalameta" % "sbt-native-image" % "VERSION")
+addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.1.0")
 ```
 
 Next, enable the plugin to your native-image application in `build.sbt` and
