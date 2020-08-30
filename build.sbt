@@ -31,9 +31,14 @@ lazy val plugin = project
     buildInfoPackage := "sbtnativeimage",
     buildInfoKeys := Seq[BuildInfoKey](
       version
+    ),
+    scriptedBufferLog := false,
+    scriptedLaunchOpts ++= Seq(
+      "-Xmx2048M",
+      s"-Dplugin.version=${version.value}"
     )
   )
-  .enablePlugins(BuildInfoPlugin)
+  .enablePlugins(ScriptedPlugin, BuildInfoPlugin)
 
 lazy val example = project
   .in(file("example"))

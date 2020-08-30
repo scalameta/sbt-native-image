@@ -140,6 +140,7 @@ object NativeImagePlugin extends AutoPlugin {
       // * we print the full command to the console and the manifest jar makes
       //   it more readable and easier to copy-paste.
       val manifest = target.in(NativeImageInternal).value / "manifest.jar"
+      manifest.getParentFile().mkdirs()
       createManifestJar(manifest, cp)
 
       // Assemble native-image argument list.

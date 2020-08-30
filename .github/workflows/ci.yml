@@ -18,4 +18,11 @@ jobs:
       - uses: olafurpg/setup-scala@v7
         with:
           java-version: "adopt@1.${{ matrix.java }}"
-      - run: sbt test
+      - shell: bash
+        run: |
+          export JABBA=/home/runner/bin/jabba
+          $JABBA install graalvm@20.1.0
+          export GRAALVM_HOME=$($JABBA which --home graalvm@20.1.0)
+          $GRAALVM_HOME/bin/gu install native-image
+          export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
+          sbt test plugin/scripted
