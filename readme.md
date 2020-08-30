@@ -72,7 +72,7 @@ native-image generation and to automate your native-image workflows.
   native-image
 - [`nativeImageCommand`](#nativeimagecommand): the command to launch
   `native-image`
-- [`nativeImageReady`](#nativeimagealert): callback hook when native-image is
+- [`nativeImageReady`](#nativeimageready): callback hook when native-image is
   ready
 - [`nativeImageCoursier`](#nativeimagecoursier): the path to a `coursier` binary
 - [`nativeImageOutput`](#nativeimageoutput): the path to the generated
