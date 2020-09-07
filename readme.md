@@ -182,7 +182,7 @@ build the binaries in CI with GitHub Actions.
     directory in your project.
 
         mkdir -p .github/workflows && \
-          curl -L https://raw.githubusercontent.com/scalameta/sbt-native-image/master/.github/workflows/ci.yml > .github/workflows/native.yml
+          curl -L https://raw.githubusercontent.com/scalameta/sbt-native-image/master/.github/workflows/native.yml > .github/workflows/native.yml
 
 2.  Edit the file to replace "example" with the name of your binary.
 3.  Commit your changes.
