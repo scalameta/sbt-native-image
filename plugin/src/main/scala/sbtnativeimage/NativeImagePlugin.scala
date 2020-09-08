@@ -107,25 +107,31 @@ object NativeImagePlugin extends AutoPlugin {
         out
       }
     },
-    nativeImageCommand := {
+    nativeImageCommand := Def.taskDyn {
       if (
         Properties.isWin ||
-        Properties.propIsSet("native-image-installed") ||
+        "true".equalsIgnoreCase(System.getProperty("native-image-installed")) ||
         "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED"))
       ) {
-        List[String]("native-image")
+        val path = Paths
+          .get(System.getenv("JAVA_HOME"))
+          .resolve("bin")
+          .resolve("native-image")
+        Def.task(List[String](path.toString()))
       } else {
-        val svmVersion = nativeImageVersion.value
-        List(
-          nativeImageCoursier.value.absolutePath,
-          "launch",
-          "--jvm",
-          s"${nativeImageJvm.value}:$svmVersion",
-          s"org.graalvm.nativeimage:svm-driver:$svmVersion",
-          "--"
-        )
+        Def.task {
+          val svmVersion = nativeImageVersion.value
+          List(
+            nativeImageCoursier.value.absolutePath,
+            "launch",
+            "--jvm",
+            s"${nativeImageJvm.value}:$svmVersion",
+            s"org.graalvm.nativeimage:svm-driver:$svmVersion",
+            "--"
+          )
+        }
       }
-    },
+    }.value,
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
     nativeImageCopy := {
