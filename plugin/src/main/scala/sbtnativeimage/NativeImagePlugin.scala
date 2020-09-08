@@ -151,12 +151,15 @@ object NativeImagePlugin extends AutoPlugin {
       val manifest = target.in(NativeImageInternal).value / "manifest.jar"
       manifest.getParentFile().mkdirs()
       createManifestJar(manifest, cp)
+      val nativeClasspath =
+        if (Properties.isWin) cp.mkString(File.pathSeparator)
+        else manifest.absolutePath
 
       // Assemble native-image argument list.
       val command = mutable.ListBuffer.empty[String]
       command ++= nativeImageCommand.value
       command += "-cp"
-      command += manifest.absolutePath
+      command += nativeClasspath
       command ++= nativeImageOptions.value
       command += main.getOrElse(
         throw new MessageOnlyException(
