@@ -113,10 +113,13 @@ object NativeImagePlugin extends AutoPlugin {
         "true".equalsIgnoreCase(System.getProperty("native-image-installed")) ||
         "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED"))
       ) {
-        val path = Paths
+        val binary =
+          if (Properties.isWin) "native-image.cmd" else "native-image"
+        val bin = Paths
           .get(System.getenv("JAVA_HOME"))
           .resolve("bin")
-          .resolve("native-image")
+        println(s"FILES: ${bin.toFile().listFiles().toList}")
+        val path = bin.resolve(binary)
         Def.task(List[String](path.toString()))
       } else {
         Def.task {
