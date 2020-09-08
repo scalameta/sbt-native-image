@@ -5,7 +5,7 @@ on:
       - master
   pull_request:
 jobs:
-  unit:
+  unix:
     name: Compile
     runs-on: ${{ matrix.os }}
     strategy:
@@ -26,3 +26,18 @@ jobs:
           $GRAALVM_HOME/bin/gu install native-image
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt test plugin/scripted
+  windows:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2016, windows-latest]
+    steps:
+      - uses: actions/checkout@v1
+      - uses: olafurpg/setup-scala@v7
+      - run: java -version
+      - run: choco install visualstudio2017-workload-vctools
+      - shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          sbt test

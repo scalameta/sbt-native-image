@@ -54,6 +54,25 @@ object NativeImagePlugin extends AutoPlugin {
       )
   }
   import autoImport._
+
+  private def copyResource(
+      filename: String,
+      outDir: File
+  ): File = {
+    Files.createDirectories(outDir.toPath)
+    val in =
+      this.getClass().getResourceAsStream(s"/sbt-native-image/${filename}")
+    if (in == null) {
+      throw new MessageOnlyException(
+        "unable to find coursier binary via resources. " +
+          "To fix this problem, define the `nativeImageCoursier` task to return the path to a Coursier binary."
+      )
+    }
+    val out = outDir.toPath.resolve(filename)
+    Files.copy(in, out, StandardCopyOption.REPLACE_EXISTING)
+    out.toFile.setExecutable(true)
+    out.toFile
+  }
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies ++= {
       if (scalaVersion.value.startsWith("2.11")) Nil
@@ -74,23 +93,13 @@ object NativeImagePlugin extends AutoPlugin {
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageOptions := List(),
     nativeImageCoursier := {
-      val out = target.in(NativeImageInternal).value / "coursier"
-      Files.createDirectories(out.toPath.getParent)
-      val in =
-        this.getClass().getResourceAsStream("/sbt-native-image/coursier")
-      if (in == null) {
-        throw new MessageOnlyException(
-          "unable to find coursier binary via resources. " +
-            "To fix this problem, define the `nativeImageCoursier` task to return the path to a Coursier binary."
-        )
+      val dir = target.in(NativeImageInternal).value
+      val out = copyResource("coursier", dir)
+      if (Properties.isWin) {
+        copyResource("coursier.bat", dir)
+      } else {
+        out
       }
-      Files.copy(
-        in,
-        out.toPath,
-        StandardCopyOption.REPLACE_EXISTING
-      )
-      out.setExecutable(true)
-      out
     },
     nativeImageCommand := {
       val svmVersion = nativeImageVersion.value
