@@ -12,6 +12,7 @@ features:
 **Overview:**
 
 - [Getting started](#getting-started)
+- [Custom native-image installation](#custom-native-image-installation)
 - [Configuration](#configuration)
 - [Generate native-image from GitHub Actions](#generate-native-image-fromgithub-actions)
 - [Comparison with sbt-native-packager](#comparison-with-sbt-native-packager)
@@ -57,6 +58,23 @@ test that it works as expected.
 > myNativeImageProject/nativeImageRun argument1 argument 2
 # output from your native-image binary
 ```
+
+## Custom native-image installation
+
+By default on macOS and Linux, sbt-native-image automatically installs GraalVM
+and native-image using Coursier. In case you are on Windows or prefer manual
+native-image installation, do one of the following steps:
+
+- On Windows (required): make sure `$JAVA_HOME\bin\native-image.cmd` points to a
+  valid native-image installation. Automatic GraalVM installation is not
+  supported on Windows. For more details, see
+  https://www.graalvm.org/reference-manual/native-image/#prerequisites-for-using-native-image-on-windows
+- On macOS/Linux (optional): start sbt with the environment variable
+  `NATIVE_IMAGE_INSTALLED=true` or the system property
+  `-Dnative-image-installed=true`. Make sure `$JAVA_HOME/bin/native-image`
+  points to a valid native-image installation.
+- On any OS (optional): override the task key
+  [`nativeImageCommand := List("/path/to/native-image")`](#nativeimagecommand).
 
 ## Configuration
 
