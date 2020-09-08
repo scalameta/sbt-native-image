@@ -16,6 +16,7 @@ import sbt.Keys._
 import sbt._
 import sbt.plugins.JvmPlugin
 import sbt.complete.DefaultParsers._
+import java.nio.file.Paths
 
 object NativeImagePlugin extends AutoPlugin {
   override def requires = JvmPlugin
@@ -32,7 +33,7 @@ object NativeImagePlugin extends AutoPlugin {
       settingKey[String]("The version of GraalVM to use by default.")
     lazy val nativeImageJvm: SettingKey[String] =
       settingKey[String](
-        "The GraalVM JVM kind with valid options: graalvm-java11 (default) | graalvm"
+        "The GraalVM JVM kind with valid options: graalvm (default) | graalvm-java11 (does not work)"
       )
     lazy val nativeImageCoursier: TaskKey[File] =
       taskKey[File](
@@ -92,8 +93,8 @@ object NativeImagePlugin extends AutoPlugin {
       { () => this.alertUser(s, "Native image ready!") }
     },
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
-    nativeImageJvm := "graalvm-java11",
-    nativeImageVersion := "20.1.0",
+    nativeImageJvm := "graalvm",
+    nativeImageVersion := "19.3.2",
     name.in(NativeImage) := name.value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageOptions := List(),

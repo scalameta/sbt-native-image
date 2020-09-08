@@ -36,8 +36,12 @@ jobs:
       - uses: actions/checkout@v1
       - uses: olafurpg/setup-scala@v7
       - run: java -version
-      - run: choco install visualstudio2017-workload-vctools
-      - shell: cmd
+      - run: choco install -y windows-sdk-7.1 vcbuildtools kb2519277
+      - shell: bash
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+          cp "/C/Program Files/Microsoft SDKs/Windows/v7.1/Lib/x64/advapi32.lib" "/C/Program Files/Microsoft SDKs/Windows/v7.1/Lib/x64/stdc++.lib"
+      - shell: cmd
+        name: sbt test
+        run: |
+          call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.Cmd"
           sbt test
