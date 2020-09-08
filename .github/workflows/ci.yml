@@ -31,17 +31,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2016, windows-latest]
+        os: [windows-latest]
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
+      - name: Configure Pagefile
+        uses: al-cheb/configure-pagefile-action@v1.2
+      - name: Refresh Pagefile
+        run: |
+          (Get-CimInstance Win32_PageFileUsage).AllocatedBaseSize
       - uses: olafurpg/setup-scala@v7
-      - run: java -version
-      - run: choco install -y windows-sdk-7.1 vcbuildtools kb2519277
-      - shell: bash
+        with:
+          java-version: graalvm-ce-java11@20.1.0
+      - name: gu install native-image
+        shell: bash
         run: |
-          cp "/C/Program Files/Microsoft SDKs/Windows/v7.1/Lib/x64/advapi32.lib" "/C/Program Files/Microsoft SDKs/Windows/v7.1/Lib/x64/stdc++.lib"
-      - shell: cmd
-        name: sbt test
-        run: |
-          call "C:\Program Files\Microsoft SDKs\Windows\v7.1\Bin\SetEnv.Cmd"
-          sbt test
+          echo $JAVA_HOME
+          "$JAVA_HOME\bin\gu.cmd" install native-image
+      - name: sbt test
+        shell: cmd
+        run: >-
+          "C:\Program Files (x86)\Microsoft Visual
+          Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && sbt test

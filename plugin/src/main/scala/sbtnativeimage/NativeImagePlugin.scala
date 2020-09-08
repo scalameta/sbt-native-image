@@ -108,15 +108,23 @@ object NativeImagePlugin extends AutoPlugin {
       }
     },
     nativeImageCommand := {
-      val svmVersion = nativeImageVersion.value
-      List(
-        nativeImageCoursier.value.absolutePath,
-        "launch",
-        "--jvm",
-        s"${nativeImageJvm.value}:$svmVersion",
-        s"org.graalvm.nativeimage:svm-driver:$svmVersion",
-        "--"
-      )
+      if (
+        Properties.isWin ||
+        Properties.propIsSet("native-image-installed") ||
+        "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED"))
+      ) {
+        List[String]("native-image")
+      } else {
+        val svmVersion = nativeImageVersion.value
+        List(
+          nativeImageCoursier.value.absolutePath,
+          "launch",
+          "--jvm",
+          s"${nativeImageJvm.value}:$svmVersion",
+          s"org.graalvm.nativeimage:svm-driver:$svmVersion",
+          "--"
+        )
+      }
     },
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
