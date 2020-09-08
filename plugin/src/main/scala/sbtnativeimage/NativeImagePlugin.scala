@@ -30,6 +30,10 @@ object NativeImagePlugin extends AutoPlugin {
       )
     lazy val nativeImageVersion: SettingKey[String] =
       settingKey[String]("The version of GraalVM to use by default.")
+    lazy val nativeImageJvm: SettingKey[String] =
+      settingKey[String](
+        "The GraalVM JVM kind with valid options: graalvm-java11 (default) | graalvm"
+      )
     lazy val nativeImageCoursier: TaskKey[File] =
       taskKey[File](
         "Path to a coursier binary that is used to launch GraalVM native-image."
@@ -88,6 +92,7 @@ object NativeImagePlugin extends AutoPlugin {
       { () => this.alertUser(s, "Native image ready!") }
     },
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
+    nativeImageJvm := "graalvm-java11",
     nativeImageVersion := "20.1.0",
     name.in(NativeImage) := name.value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
@@ -107,7 +112,7 @@ object NativeImagePlugin extends AutoPlugin {
         nativeImageCoursier.value.absolutePath,
         "launch",
         "--jvm",
-        s"graalvm:$svmVersion",
+        s"${nativeImageJvm.value}:$svmVersion",
         s"org.graalvm.nativeimage:svm-driver:$svmVersion",
         "--"
       )
