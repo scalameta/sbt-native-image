@@ -212,7 +212,7 @@ object NativeImagePlugin extends AutoPlugin {
     // https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html
     val syntax = path.toURI.toURL.getPath
     val separatorAdded = {
-      if (syntax.endsWith(".jar")) {
+      if (syntax.endsWith(".jar") || syntax.endsWith(File.separator)) {
         syntax
       } else {
         syntax + File.separator
