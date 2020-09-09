@@ -3,11 +3,16 @@
 This plugin makes it easy to generate native-image binaries with sbt. Key
 features:
 
-- automatic GraalVM native-image installation via Coursier, no need to start sbt
-  with GraalVM or spin up docker.
+- automatic GraalVM native-image installation powered by
+  [Coursier](https://get-coursier.io/), no need to start sbt with a custom
+  `$JAVA_HOME` or spin up Docker. See
+  [One-click install for Scala](https://scala-lang.org/2020/06/29/one-click-install.html)
+  for more details.
 - automatic support for Scala 2.12.12+ and 2.13.3+, no need to deal with issues
   like [scala/bug#11634](https://github.com/scala/bug/issues/11634).
 - get a notification when the binary is ready to use.
+- works on macOS, Windows and Linux.
+- works with Java 8 and Java 11.
 
 **Overview:**
 
@@ -137,8 +142,9 @@ CI to generate the binary in a specific place.
 
 **Description**: the base command that is used to launch native-image.
 
-**Default**: launches GraalVM via Coursier. Can be customized to execute custom
-`native-image` binary directly.
+**Default**: automatically installs GraalVM `native-image` via
+[Coursier](https://get-coursier.io/). Customize this setting if you prefer to
+manually install native-image.
 
 **Example usage**: `nativeImageCommand := List("/path/to/native-image")`
 

@@ -16,6 +16,7 @@ import sbt.Keys._
 import sbt._
 import sbt.plugins.JvmPlugin
 import sbt.complete.DefaultParsers._
+import java.nio.file.Paths
 
 object NativeImagePlugin extends AutoPlugin {
   override def requires = JvmPlugin
@@ -30,6 +31,10 @@ object NativeImagePlugin extends AutoPlugin {
       )
     lazy val nativeImageVersion: SettingKey[String] =
       settingKey[String]("The version of GraalVM to use by default.")
+    lazy val nativeImageJvm: SettingKey[String] =
+      settingKey[String](
+        "The GraalVM JVM version, one of: graalvm-java11 (default) | graalvm (Java 8)"
+      )
     lazy val nativeImageCoursier: TaskKey[File] =
       taskKey[File](
         "Path to a coursier binary that is used to launch GraalVM native-image."
@@ -54,6 +59,25 @@ object NativeImagePlugin extends AutoPlugin {
       )
   }
   import autoImport._
+
+  private def copyResource(
+      filename: String,
+      outDir: File
+  ): File = {
+    Files.createDirectories(outDir.toPath)
+    val in =
+      this.getClass().getResourceAsStream(s"/sbt-native-image/${filename}")
+    if (in == null) {
+      throw new MessageOnlyException(
+        "unable to find coursier binary via resources. " +
+          "To fix this problem, define the `nativeImageCoursier` task to return the path to a Coursier binary."
+      )
+    }
+    val out = outDir.toPath.resolve(filename)
+    Files.copy(in, out, StandardCopyOption.REPLACE_EXISTING)
+    out.toFile.setExecutable(true)
+    out.toFile
+  }
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies ++= {
       if (scalaVersion.value.startsWith("2.11")) Nil
@@ -69,40 +93,55 @@ object NativeImagePlugin extends AutoPlugin {
       { () => this.alertUser(s, "Native image ready!") }
     },
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
+    nativeImageJvm := "graalvm-java11",
     nativeImageVersion := "20.1.0",
     name.in(NativeImage) := name.value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageOptions := List(),
     nativeImageCoursier := {
-      val out = target.in(NativeImageInternal).value / "coursier"
-      Files.createDirectories(out.toPath.getParent)
-      val in =
-        this.getClass().getResourceAsStream("/sbt-native-image/coursier")
-      if (in == null) {
-        throw new MessageOnlyException(
-          "unable to find coursier binary via resources. " +
-            "To fix this problem, define the `nativeImageCoursier` task to return the path to a Coursier binary."
-        )
+      val dir = target.in(NativeImageInternal).value
+      val out = copyResource("coursier", dir)
+      if (Properties.isWin) {
+        copyResource("coursier.bat", dir)
+      } else {
+        out
       }
-      Files.copy(
-        in,
-        out.toPath,
-        StandardCopyOption.REPLACE_EXISTING
-      )
-      out.setExecutable(true)
-      out
     },
-    nativeImageCommand := {
-      val svmVersion = nativeImageVersion.value
-      List(
-        nativeImageCoursier.value.absolutePath,
-        "launch",
-        "--jvm",
-        s"graalvm:$svmVersion",
-        s"org.graalvm.nativeimage:svm-driver:$svmVersion",
-        "--"
-      )
-    },
+    nativeImageCommand := Def.taskDyn {
+      if (
+        "true".equalsIgnoreCase(System.getProperty("native-image-installed")) ||
+        "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED"))
+      ) {
+        val binary =
+          if (Properties.isWin) "native-image.cmd" else "native-image"
+        val path =
+          Paths.get(System.getenv("JAVA_HOME")).resolve("bin").resolve(binary)
+        Def.task(List[String](path.toString()))
+      } else {
+        Def.task {
+          val coursier = nativeImageCoursier.value.absolutePath
+          val svm = nativeImageVersion.value
+          val jvm = nativeImageJvm.value
+          val javaHome = Paths.get(
+            Process(List(coursier, "java-home", "--jvm", s"$jvm:$svm")).!!.trim
+          )
+          val cmd = if (Properties.isWin) ".cmd" else ""
+          val ni = javaHome.resolve("bin").resolve(s"native-image$cmd")
+          if (!Files.isExecutable(ni)) {
+            val gu = ni.resolveSibling(s"gu$cmd")
+            Process(List(gu.toString, "install", "native-image")).!
+          }
+          if (!Files.isExecutable(ni)) {
+            throw new MessageOnlyException(
+              "Failed to automatically install native-image. " +
+                "To fix this problem, install native-image manually and start sbt with " +
+                "the environment variable 'NATIVE_IMAGE_INSTALLED=true'"
+            )
+          }
+          List(ni.toString())
+        }
+      }
+    }.value,
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
     nativeImageCopy := {
@@ -142,12 +181,15 @@ object NativeImagePlugin extends AutoPlugin {
       val manifest = target.in(NativeImageInternal).value / "manifest.jar"
       manifest.getParentFile().mkdirs()
       createManifestJar(manifest, cp)
+      val nativeClasspath =
+        if (Properties.isWin) cp.mkString(File.pathSeparator)
+        else manifest.absolutePath
 
       // Assemble native-image argument list.
       val command = mutable.ListBuffer.empty[String]
       command ++= nativeImageCommand.value
       command += "-cp"
-      command += manifest.absolutePath
+      command += nativeClasspath
       command ++= nativeImageOptions.value
       command += main.getOrElse(
         throw new MessageOnlyException(
@@ -203,7 +245,7 @@ object NativeImagePlugin extends AutoPlugin {
     // https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html
     val syntax = path.toURI.toURL.getPath
     val separatorAdded = {
-      if (syntax.endsWith(".jar")) {
+      if (syntax.endsWith(".jar") || syntax.endsWith(File.separator)) {
         syntax
       } else {
         syntax + File.separator
