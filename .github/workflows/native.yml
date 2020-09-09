@@ -16,14 +16,14 @@ jobs:
         include:
           # Replace "example" with the name your binary
           - os: macOS-latest
-            artifact: example-x86_64-apple-darwin
-            binary: example/target/native-image/example
+            uploaded_filename: example-x86_64-apple-darwin
+            local_path: example/target/native-image/example
           - os: ubuntu-latest
-            artifact: example-x86_64-pc-linux
-            binary: example/target/native-image/example
+            uploaded_filename: example-x86_64-pc-linux
+            local_path: example/target/native-image/example
           - os: windows-latest
-            artifact: example-x86_64-pc-win32.exe
-            binary: example\target\native-image\example.exe
+            uploaded_filename: example-x86_64-pc-win32.exe
+            local_path: example/target/native-image/example.exe
     steps:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v6
@@ -40,8 +40,8 @@ jobs:
           example/nativeImage
       - uses: actions/upload-artifact@master
         with:
-          path: ${{ matrix.binary }}
-          name: ${{ matrix.artifact }}
+          path: ${{ matrix.local_path }}
+          name: ${{ matrix.uploaded_filename }}
       - name: Upload release
         if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1.0.1
@@ -49,6 +49,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ${{ matrix.binary }}
-          asset_name: ${{ matrix.artifact }}
+          asset_path: ${{ matrix.local_path }}
+          asset_name: ${{ matrix.uploaded_filename }}
           asset_content_type: application/zip

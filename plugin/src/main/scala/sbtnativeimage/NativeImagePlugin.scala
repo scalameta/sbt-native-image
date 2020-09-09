@@ -33,7 +33,7 @@ object NativeImagePlugin extends AutoPlugin {
       settingKey[String]("The version of GraalVM to use by default.")
     lazy val nativeImageJvm: SettingKey[String] =
       settingKey[String](
-        "The GraalVM JVM kind with valid options: graalvm (default) | graalvm-java11 (does not work)"
+        "The GraalVM JVM version, one of: graalvm-java11 (default) | graalvm (Java 8)"
       )
     lazy val nativeImageCoursier: TaskKey[File] =
       taskKey[File](
