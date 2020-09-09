@@ -40,8 +40,6 @@ jobs:
           "C:\Program Files (x86)\Microsoft Visual
           Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && sbt
           example/nativeImage
-      - run: ls example/target/native-image
-        shell: bash
       - uses: actions/upload-artifact@master
         with:
           path: ${{ matrix.local_path }}

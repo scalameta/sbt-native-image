@@ -95,10 +95,7 @@ object NativeImagePlugin extends AutoPlugin {
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageJvm := "graalvm-java11",
     nativeImageVersion := "20.1.0",
-    name.in(NativeImage) := {
-      val exe = if (Properties.isWin) ".exe" else ""
-      name.value + exe
-    },
+    name.in(NativeImage) := name.value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageOptions := List(),
     nativeImageCoursier := {
