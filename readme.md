@@ -75,6 +75,8 @@ native-image generation and to automate your native-image workflows.
   binary
 - [`nativeImageVersion`](#nativeimageversion): the GraalVM version to use for
   native-image
+- [`nativeImageJvm`](#nativeimagejvm): the GraalVM JVM version to use for
+  native-image
 - [`nativeImageCommand`](#nativeimagecommand): the command to launch
   `native-image`
 - [`nativeImageReady`](#nativeimageready): callback hook when native-image is
@@ -135,6 +137,17 @@ CI to generate the binary in a specific place.
 **Default**: 20.1.0
 
 **Example usage**: `nativeImageVersion := "19.3.3"`
+
+### `nativeImageJvm`
+
+**Type**: `SettingKey[String]`
+
+**Description**: the GraalVM JVM version to use.
+
+**Default**: `"graalvm-java11"`. Must be one of: `"graalvm-java11"`, `"graalvm"`
+(Java 8).
+
+**Example usage**: `nativeImageVersion := "graalvm"`
 
 ### `nativeImageCommand`
 
