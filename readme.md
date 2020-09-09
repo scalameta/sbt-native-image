@@ -3,11 +3,16 @@
 This plugin makes it easy to generate native-image binaries with sbt. Key
 features:
 
-- automatic GraalVM native-image installation via Coursier, no need to start sbt
-  with GraalVM or spin up docker.
+- automatic GraalVM native-image installation powered by
+  [Coursier](https://get-coursier.io/), no need to start sbt with a custom
+  `$JAVA_HOME` or spin up Docker. See
+  [One-click install for Scala](https://scala-lang.org/2020/06/29/one-click-install.html)
+  for more details.
 - automatic support for Scala 2.12.12+ and 2.13.3+, no need to deal with issues
   like [scala/bug#11634](https://github.com/scala/bug/issues/11634).
 - get a notification when the binary is ready to use.
+- works on macOS, Windows and Linux.
+- works with Java 8 and Java 11.
 
 **Overview:**
 
