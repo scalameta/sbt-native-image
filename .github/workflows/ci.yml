@@ -11,14 +11,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
         java: [8]
     steps:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v7
         with:
           java-version: "adopt@1.${{ matrix.java }}"
-      - shell: bash
+      - name: sbt test plugin/scripted
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        shell: bash
         run: |
           export JABBA=/home/runner/bin/jabba
           $JABBA install graalvm@20.1.0
@@ -26,29 +28,10 @@ jobs:
           $GRAALVM_HOME/bin/gu install native-image
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt test plugin/scripted
-  windows:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest]
-    steps:
-      - uses: actions/checkout@v2
-      - name: Configure Pagefile
-        uses: al-cheb/configure-pagefile-action@v1.2
-      - name: Refresh Pagefile
-        run: |
-          (Get-CimInstance Win32_PageFileUsage).AllocatedBaseSize
-      - uses: olafurpg/setup-scala@v7
-        with:
-          java-version: graalvm-ce-java11@20.1.0
-      - name: gu install native-image
-        shell: bash
-        run: |
-          echo $JAVA_HOME
-          "$JAVA_HOME\bin\gu.cmd" install native-image
       - name: sbt test
         shell: cmd
+        if: ${{ matrix.os == 'windows-latest' }}
         run: >-
           "C:\Program Files (x86)\Microsoft Visual
-          Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && sbt test
+          Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && sbt
+          example/nativeImage

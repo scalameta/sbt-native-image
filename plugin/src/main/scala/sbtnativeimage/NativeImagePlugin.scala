@@ -93,9 +93,12 @@ object NativeImagePlugin extends AutoPlugin {
       { () => this.alertUser(s, "Native image ready!") }
     },
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
-    nativeImageJvm := "graalvm",
-    nativeImageVersion := "19.3.2",
-    name.in(NativeImage) := name.value,
+    nativeImageJvm := "graalvm-java11",
+    nativeImageVersion := "20.1.0",
+    name.in(NativeImage) := {
+      val exe = if (Properties.isWin) ".exe" else ""
+      name.value + exe
+    },
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageOptions := List(),
     nativeImageCoursier := {
@@ -109,7 +112,6 @@ object NativeImagePlugin extends AutoPlugin {
     },
     nativeImageCommand := Def.taskDyn {
       if (
-        Properties.isWin ||
         "true".equalsIgnoreCase(System.getProperty("native-image-installed")) ||
         "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED"))
       ) {
@@ -120,15 +122,26 @@ object NativeImagePlugin extends AutoPlugin {
         Def.task(List[String](path.toString()))
       } else {
         Def.task {
-          val svmVersion = nativeImageVersion.value
-          List(
-            nativeImageCoursier.value.absolutePath,
-            "launch",
-            "--jvm",
-            s"${nativeImageJvm.value}:$svmVersion",
-            s"org.graalvm.nativeimage:svm-driver:$svmVersion",
-            "--"
+          val coursier = nativeImageCoursier.value.absolutePath
+          val svm = nativeImageVersion.value
+          val jvm = nativeImageJvm.value
+          val javaHome = Paths.get(
+            Process(List(coursier, "java-home", "--jvm", s"$jvm:$svm")).!!.trim
           )
+          val cmd = if (Properties.isWin) ".cmd" else ""
+          val ni = javaHome.resolve("bin").resolve(s"native-image$cmd")
+          if (!Files.isExecutable(ni)) {
+            val gu = ni.resolveSibling(s"gu$cmd")
+            Process(List(gu.toString, "install", "native-image")).!
+          }
+          if (!Files.isExecutable(ni)) {
+            throw new MessageOnlyException(
+              "Failed to automatically install native-image. " +
+                "To fix this problem, install native-image manually and start sbt with " +
+                "the environment variable 'NATIVE_IMAGE_INSTALLED=true'"
+            )
+          }
+          List(ni.toString())
         }
       }
     }.value,
