@@ -23,7 +23,7 @@ jobs:
             local_path: example/target/native-image/example
           - os: windows-latest
             uploaded_filename: example-x86_64-pc-win32.exe
-            local_path: D:\a\sbt-native-image\sbt-native-image\example\target\native-image\example.exe
+            local_path: example\target\native-image\example.exe
     steps:
       - uses: actions/checkout@v2
       - uses: olafurpg/setup-scala@v6
@@ -31,6 +31,8 @@ jobs:
       - run: sbt example/nativeImage
         shell: bash
         if: ${{ matrix.os != 'windows-latest' }}
+      - run: echo $(pwd)
+        shell: bash
       - name: sbt test
         shell: cmd
         if: ${{ matrix.os == 'windows-latest' }}
@@ -38,6 +40,8 @@ jobs:
           "C:\Program Files (x86)\Microsoft Visual
           Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && sbt
           example/nativeImage
+      - run: ls example/target/native-image
+        shell: bash
       - uses: actions/upload-artifact@master
         with:
           path: ${{ matrix.local_path }}
