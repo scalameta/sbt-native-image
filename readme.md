@@ -147,7 +147,7 @@ CI to generate the binary in a specific place.
 **Default**: `"graalvm-java11"`. Must be one of: `"graalvm-java11"`, `"graalvm"`
 (Java 8).
 
-**Example usage**: `nativeImageVersion := "graalvm"`
+**Example usage**: `nativeImageJvm := "graalvm"`
 
 ### `nativeImageCommand`
 
