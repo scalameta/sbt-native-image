@@ -210,9 +210,6 @@ build the binaries in CI with GitHub Actions.
 5.  Create a GitHub release and see the binary get uploaded as assets to the
     release page.
 
-**Help wanted**: it would be lovely to add support for Windows as well. If you
-know how to accomplish this, please consider contributing!.
-
 ## Comparison with sbt-native-packager
 
 The sbt-native-packager plugin provides similar support to generate native-image
