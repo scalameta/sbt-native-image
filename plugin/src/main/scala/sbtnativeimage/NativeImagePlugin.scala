@@ -80,10 +80,7 @@ object NativeImagePlugin extends AutoPlugin {
     out.toFile
   }
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
-    libraryDependencies ++= {
-      if (scalaVersion.value.startsWith("2.11")) Nil
-      else List("org.scalameta" %% "svm-subs" % nativeImageVersion.value)
-    },
+    libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
     target.in(NativeImage) :=
       target.in(Compile).value / "native-image",
     target.in(NativeImageInternal) :=
@@ -169,7 +166,6 @@ object NativeImagePlugin extends AutoPlugin {
       }
     },
     nativeImage := {
-      val __ = checkUpToDateScalaVersion.value
       val _ = compile.in(Compile).value
       val main = mainClass.in(NativeImage).value
       val binaryName = nativeImageOutput.value
@@ -218,25 +214,6 @@ object NativeImagePlugin extends AutoPlugin {
       binaryName
     }
   )
-
-  private lazy val checkUpToDateScalaVersion = Def.task[Unit] {
-    val versions =
-      scalaVersion.value.split('.').map(n => Try(n.toInt).toOption).toList
-    def failWithExpectedVersion(expectedVersion: String): Nothing =
-      throw new MessageOnlyException(
-        "outdated Scala version. To fix this problem, add " +
-          s"""`scalaVersion := "$expectedVersion"` to build.sbt.""" +
-          s"Any version newer than $expectedVersion is OK to use."
-      )
-    versions match {
-      case List(Some(2), Some(12), Some(n)) if n < 12 =>
-        failWithExpectedVersion("2.12.12")
-      case List(Some(2), Some(13), Some(n)) if n < 3 =>
-        failWithExpectedVersion("2.13.3")
-      case _ =>
-    }
-    ()
-  }
 
   private def isCI = "true".equalsIgnoreCase(System.getenv("CI"))
 
