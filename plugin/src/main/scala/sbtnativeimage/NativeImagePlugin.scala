@@ -17,6 +17,7 @@ import sbt._
 import sbt.plugins.JvmPlugin
 import sbt.complete.DefaultParsers._
 import java.nio.file.Paths
+import scala.util.Try
 
 object NativeImagePlugin extends AutoPlugin {
   override def requires = JvmPlugin
@@ -79,10 +80,7 @@ object NativeImagePlugin extends AutoPlugin {
     out.toFile
   }
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
-    libraryDependencies ++= {
-      if (scalaVersion.value.startsWith("2.11")) Nil
-      else List("org.scalameta" %% "svm-subs" % nativeImageVersion.value)
-    },
+    libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
     target.in(NativeImage) :=
       target.in(Compile).value / "native-image",
     target.in(NativeImageInternal) :=
