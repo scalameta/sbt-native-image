@@ -10,7 +10,7 @@ features:
   for more details.
 - automatic support for Scala 2.12.12+ and 2.13.3+, no need to deal with issues
   like [scala/bug#11634](https://github.com/scala/bug/issues/11634).
-- experimental support for Scala 3 (Dotty)
+- works with Scala 3 (Dotty)
 - get a notification when the binary is ready to use.
 - works on macOS, Windows and Linux.
 - works with Java 8 and Java 11.
