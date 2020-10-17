@@ -30,7 +30,7 @@ First, add the sbt plugin to your build in `project/plugins.sbt`.
 
 ```scala
 // project/plugins.sbt
-addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.2.1")
+addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.2.2")
 ```
 
 Next, enable the plugin to your native-image application in `build.sbt` and
@@ -137,7 +137,7 @@ CI to generate the binary in a specific place.
 
 **Description**: the GraalVM version to use.
 
-**Default**: 20.1.0
+**Default**: 20.2.0
 
 **Example usage**: `nativeImageVersion := "19.3.3"`
 
