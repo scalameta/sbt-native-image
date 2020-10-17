@@ -77,6 +77,8 @@ native-image generation and to automate your native-image workflows.
   native-image
 - [`nativeImageJvm`](#nativeimagejvm): the GraalVM JVM version to use for
   native-image
+- [`nativeImageJvmIndex`](#nativeimagejvmindex): the index to use for resolving
+  the JVM version
 - [`nativeImageCommand`](#nativeimagecommand): the command to launch
   `native-image`
 - [`nativeImageReady`](#nativeimageready): callback hook when native-image is
@@ -148,6 +150,17 @@ CI to generate the binary in a specific place.
 (Java 8).
 
 **Example usage**: `nativeImageJvm := "graalvm"`
+
+### `nativeImageJvmIndex`
+
+**Type**: `SettingKey[String]`
+
+**Description**: the index to use for resolving the JVM version. By default,
+uses the [Cousier JVM index](https://github.com/coursier/jvm-index).
+
+**Default**: `"cs"`. Must be one of: `"cs"`, `"jabba"`.
+
+**Example usage**: `nativeImageJvmIndex := "jabba"`.
 
 ### `nativeImageCommand`
 
