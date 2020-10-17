@@ -36,6 +36,10 @@ object NativeImagePlugin extends AutoPlugin {
       settingKey[String](
         "The GraalVM JVM version, one of: graalvm-java11 (default) | graalvm (Java 8)"
       )
+    lazy val nativeImageJvmIndex: SettingKey[String] =
+      settingKey[String](
+        "The JVM version index to use, one of: cs (default) | jabba"
+      )
     lazy val nativeImageCoursier: TaskKey[File] =
       taskKey[File](
         "Path to a coursier binary that is used to launch GraalVM native-image."
@@ -92,7 +96,8 @@ object NativeImagePlugin extends AutoPlugin {
     },
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageJvm := "graalvm-java11",
-    nativeImageVersion := "20.1.0",
+    nativeImageJvmIndex := "cs",
+    nativeImageVersion := "20.2.0",
     name.in(NativeImage) := name.value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageOptions := List(),
@@ -120,8 +125,18 @@ object NativeImagePlugin extends AutoPlugin {
           val coursier = nativeImageCoursier.value.absolutePath
           val svm = nativeImageVersion.value
           val jvm = nativeImageJvm.value
+          val index = nativeImageJvmIndex.value
           val javaHome = Paths.get(
-            Process(List(coursier, "java-home", "--jvm", s"$jvm:$svm")).!!.trim
+            Process(
+              List(
+                coursier,
+                "java-home",
+                "--jvm-index",
+                index,
+                "--jvm",
+                s"$jvm:$svm"
+              )
+            ).!!.trim
           )
           val cmd = if (Properties.isWin) ".cmd" else ""
           val ni = javaHome.resolve("bin").resolve(s"native-image$cmd")
