@@ -1,8 +1,7 @@
 package sbtnativeimage
 
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
+import java.nio.file.{ Files, Path, Paths, StandardCopyOption }
 import java.util.jar.Attributes
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
@@ -16,7 +15,6 @@ import sbt.Keys._
 import sbt._
 import sbt.plugins.JvmPlugin
 import sbt.complete.DefaultParsers._
-import java.nio.file.Paths
 import scala.util.Try
 
 object NativeImagePlugin extends AutoPlugin {
@@ -44,9 +42,26 @@ object NativeImagePlugin extends AutoPlugin {
       taskKey[File](
         "Path to a coursier binary that is used to launch GraalVM native-image."
       )
+    lazy val nativeImageInstalled: SettingKey[Boolean] =
+      settingKey[Boolean]("Whether GraalVM is manually installed or should be downloaded with coursier.")
+    lazy val nativeImageGraalHome: TaskKey[Path] =
+      taskKey[Path]("Path to GraalVM home directory.")
     lazy val nativeImageCommand: TaskKey[Seq[String]] =
       taskKey[Seq[String]](
         "The command arguments to launch the GraalVM native-image binary."
+      )
+    lazy val nativeImageRunAgent: InputKey[Unit] =
+      inputKey[Unit](
+        "Run application, tracking all usages of dynamic features of an execution with `native-image-agent`."
+      )
+    lazy val nativeImageAgentOutputDir: SettingKey[File] =
+      settingKey[File](
+        "Path to directory where `native-image-agent` should put generated configurations."
+      )
+    lazy val nativeImageAgentMerge: SettingKey[Boolean] =
+      settingKey[Boolean](
+        "Whether `native-image-agent` should merge generated configurations." +
+          s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
       )
     lazy val nativeImage: TaskKey[File] =
       taskKey[File]("Generate a native image for this project.")
@@ -62,6 +77,9 @@ object NativeImagePlugin extends AutoPlugin {
       taskKey[Seq[String]](
         "Extra command-line arguments that should be forwarded to the native-image optimizer."
       )
+
+    private lazy val assistedConfigurationOfNativeImageBuildsLink =
+      "https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds"
   }
   import autoImport._
 
@@ -110,23 +128,27 @@ object NativeImagePlugin extends AutoPlugin {
         out
       }
     },
-    nativeImageCommand := Def.taskDyn {
-      if (
+    nativeImageInstalled := Def.settingDyn {
+      val installed =
         "true".equalsIgnoreCase(System.getProperty("native-image-installed")) ||
-        "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED"))
-      ) {
-        val binary =
-          if (Properties.isWin) "native-image.cmd" else "native-image"
-        val path =
-          Paths.get(System.getenv("JAVA_HOME")).resolve("bin").resolve(binary)
-        Def.task(List[String](path.toString()))
+        "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED")) ||
+        "true".equalsIgnoreCase(System.getProperty("graalvm-installed")) ||
+        "true".equalsIgnoreCase(System.getenv("GRAALVM_INSTALLED"))
+      Def.setting(installed)
+    }.value,
+    nativeImageGraalHome := Def.taskDyn {
+      if (nativeImageInstalled.value) {
+        val path = Paths.get {
+          sys.env.get("GRAAL_HOME") orElse sys.env.get("GRAALVM_HOME") orElse sys.env.get("JAVA_HOME") getOrElse ""
+        }
+        Def.task(path)
       } else {
         Def.task {
           val coursier = nativeImageCoursier.value.absolutePath
           val svm = nativeImageVersion.value
           val jvm = nativeImageJvm.value
           val index = nativeImageJvmIndex.value
-          val javaHome = Paths.get(
+          Paths.get(
             Process(
               List(
                 coursier,
@@ -138,8 +160,21 @@ object NativeImagePlugin extends AutoPlugin {
               )
             ).!!.trim
           )
+        }
+      }
+    }.value,
+    nativeImageCommand := Def.taskDyn {
+      val graalHome = nativeImageGraalHome.value
+      if (nativeImageInstalled.value) {
+        val binary =
+          if (Properties.isWin) "native-image.cmd" else "native-image"
+        val path =
+          graalHome.resolve("bin").resolve(binary)
+        Def.task(List[String](path.toString()))
+      } else {
+        Def.task {
           val cmd = if (Properties.isWin) ".cmd" else ""
-          val ni = javaHome.resolve("bin").resolve(s"native-image$cmd")
+          val ni = graalHome.resolve("bin").resolve(s"native-image$cmd")
           if (!Files.isExecutable(ni)) {
             val gu = ni.resolveSibling(s"gu$cmd")
             Process(List(gu.toString, "install", "native-image")).!
@@ -155,6 +190,23 @@ object NativeImagePlugin extends AutoPlugin {
         }
       }
     }.value,
+    nativeImageAgentOutputDir := baseDirectory.value / "native-image-configs",
+    nativeImageAgentMerge := false,
+    nativeImageRunAgent := {
+      val graalHome = nativeImageGraalHome.value.toFile
+      val agentConfig = if (nativeImageAgentMerge.value) "config-merge-dir" else "config-output-dir"
+      val agentOption = s"-agentlib:native-image-agent=$agentConfig=${nativeImageAgentOutputDir.value}"
+      val settings = Seq(
+        fork in (Compile, run) := true,
+        javaHome in (Compile, run) := Some(graalHome),
+        javaOptions in (Compile, run) += agentOption
+      )
+      val state0 = state.value
+      val extracted = Project.extract(state0)
+      val newState = extracted.append(settings, state0)
+      val input = StringBasic.??("").parsed
+      Project.extract(newState).runInputTask(run in Compile, input, newState)
+    },
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
     nativeImageCopy := {
