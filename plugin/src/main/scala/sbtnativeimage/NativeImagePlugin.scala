@@ -204,7 +204,8 @@ object NativeImagePlugin extends AutoPlugin {
       val state0 = state.value
       val extracted = Project.extract(state0)
       val newState = extracted.append(settings, state0)
-      val input = StringBasic.??("").parsed
+      val arguments = spaceDelimited("<arg>").parsed
+      val input = if (arguments.isEmpty) "" else arguments.mkString(" ")
       Project.extract(newState).runInputTask(run in Compile, input, newState)
     },
     nativeImageOutput :=
