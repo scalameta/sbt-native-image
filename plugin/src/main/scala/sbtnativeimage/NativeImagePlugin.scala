@@ -56,7 +56,7 @@ object NativeImagePlugin extends AutoPlugin {
       )
     lazy val nativeImageAgentOutputDir: SettingKey[File] =
       settingKey[File](
-        "Path to directory where `native-image-agent` should put generated configurations."
+        "Directory where `native-image-agent` should put generated configurations."
       )
     lazy val nativeImageAgentMerge: SettingKey[Boolean] =
       settingKey[Boolean](
