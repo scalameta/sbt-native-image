@@ -230,9 +230,10 @@ project. for available options.
 
 **Description**: path to GraalVM home directory.
 
-**Default**: if `nativeImageInstalled` is `true`, then tries to read the path from environment variables
-1) `GRAAL_HOME`, 2) `GRAALVM_HOME` or 3) `JAVA_HOME` (in given order). Otherwise, automatically installs GraalVM
-via [Coursier](https://get-coursier.io/). Customize this setting if you prefer to not to use environment variables.
+**Default**: if `nativeImageInstalled` is `true`, then tries to read the path from
+environment variables 1) `GRAAL_HOME`, 2) `GRAALVM_HOME` or 3) `JAVA_HOME` (in given order).
+Otherwise, automatically installs GraalVM via [Coursier](https://get-coursier.io/).
+Customize this setting if you prefer to not to use environment variables.
 
 **Example usage**: `nativeImageGraalHome := file("/path/to/graalvm/base/directory").toPath`
 
