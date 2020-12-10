@@ -11,11 +11,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [macOS-latest, ubuntu-latest, windows-latest]
         java: [8]
     steps:
       - uses: actions/checkout@v2
-      - uses: olafurpg/setup-scala@v7
+      - uses: olafurpg/setup-scala@v10
         with:
           java-version: "adopt@1.${{ matrix.java }}"
       - name: sbt test plugin/scripted
@@ -23,8 +23,8 @@ jobs:
         shell: bash
         run: |
           export JABBA=/home/runner/bin/jabba
-          $JABBA install graalvm@20.1.0
-          export GRAALVM_HOME=$($JABBA which --home graalvm@20.1.0)
+          $JABBA install graalvm@20.2.0
+          export GRAALVM_HOME=$($JABBA which --home graalvm@20.2.0)
           $GRAALVM_HOME/bin/gu install native-image
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt test plugin/scripted
