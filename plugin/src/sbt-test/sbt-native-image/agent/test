@@ -1,0 +1,5 @@
+$ absent hello3.obtained
+> example/nativeImageRunAgent
+> example/nativeImage
+> example/nativeImageRun
+$ must-mirror hello3.expected hello3.obtained
