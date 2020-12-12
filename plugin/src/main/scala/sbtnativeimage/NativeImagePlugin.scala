@@ -196,17 +196,18 @@ object NativeImagePlugin extends AutoPlugin {
       val graalHome = nativeImageGraalHome.value.toFile
       val agentConfig = if (nativeImageAgentMerge.value) "config-merge-dir" else "config-output-dir"
       val agentOption = s"-agentlib:native-image-agent=$agentConfig=${nativeImageAgentOutputDir.value}"
+      val tpr = thisProjectRef.value
       val settings = Seq(
-        fork in (Compile, run) := true,
-        javaHome in (Compile, run) := Some(graalHome),
-        javaOptions in (Compile, run) += agentOption
+        fork in (tpr, Compile, run) := true,
+        javaHome in (tpr, Compile, run) := Some(graalHome),
+        javaOptions in (tpr, Compile, run) += agentOption
       )
       val state0 = state.value
       val extracted = Project.extract(state0)
       val newState = extracted.append(settings, state0)
       val arguments = spaceDelimited("<arg>").parsed
       val input = if (arguments.isEmpty) "" else arguments.mkString(" ")
-      Project.extract(newState).runInputTask(run in Compile, input, newState)
+      Project.extract(newState).runInputTask(run in (tpr, Compile), input, newState)
     },
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
