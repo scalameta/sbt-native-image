@@ -19,7 +19,7 @@ features:
 
 - [Getting started](#getting-started)
 - [Configuration](#configuration)
-- [Generate native-image from GitHub Actions](#generate-native-image-fromgithub-actions)
+- [Generate native-image from GitHub Actions](#generate-native-image-from-github-actions)
 - [Comparison with sbt-native-packager](#comparison-with-sbt-native-packager)
 
 ## Getting started
