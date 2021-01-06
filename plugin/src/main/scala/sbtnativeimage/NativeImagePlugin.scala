@@ -139,7 +139,10 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageGraalHome := Def.taskDyn {
       if (nativeImageInstalled.value) {
         val path = Paths.get {
-          sys.env.get("GRAAL_HOME") orElse sys.env.get("GRAALVM_HOME") orElse sys.env.get("JAVA_HOME") getOrElse ""
+          List("GRAAL_HOME", "GRAALVM_HOME", "JAVA_HOME").iterator
+            .map(key => Option(System.getenv(key)))
+            .collectFirst { case Some(value) => value }
+            .getOrElse("")
         }
         Def.task(path)
       } else {
