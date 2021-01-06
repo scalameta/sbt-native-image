@@ -193,7 +193,7 @@ object NativeImagePlugin extends AutoPlugin {
         }
       }
     }.value,
-    nativeImageAgentOutputDir := baseDirectory.value / "native-image-configs",
+    nativeImageAgentOutputDir := target.value / "native-image-configs",
     nativeImageAgentMerge := false,
     nativeImageRunAgent := {
       val graalHome = nativeImageGraalHome.value.toFile
