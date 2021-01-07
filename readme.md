@@ -244,7 +244,17 @@ Customize this setting if you prefer to not to use environment variables.
 **Description**: run application, tracking all usages of dynamic features of an execution with
 [`native-image-agent`][assisted-configuration-of-native-image-builds].
 
-**Example usage**: `sbt myProject/nativeImageRunAgent arg1 arg2`
+**Example usage**:
+```
+# Step 0: Start sbt shell.
+$ sbt
+# Step 1: Run application on the JVM with native-image agent.
+> myProject/nativeImageRunAgent arg1 arg2 
+# Step 2: Create native-image binary with assisted configuration.
+> myProject/nativeImage
+# Step 3: Run native-image that was generated with assisted configuration.
+> myProject/nativeImageRun arg1 arg2
+```
 
 ### `nativeImageAgentOutputDir`
 
