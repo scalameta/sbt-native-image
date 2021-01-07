@@ -87,6 +87,17 @@ native-image generation and to automate your native-image workflows.
 - [`nativeImageCoursier`](#nativeimagecoursier): the path to a `coursier` binary
 - [`nativeImageOutput`](#nativeimageoutput): the path to the generated
   native-image binary
+- [`nativeImageInstalled`](#nativeimageinstalled):
+  whether GraalVM is manually installed or should be downloaded with coursier
+- [`nativeImageGraalHome`](#nativeimagegraalhome):
+  path to GraalVM home directory
+- [`nativeImageRunAgent`](#nativeimagerunagent):
+  run application, tracking all usages of dynamic features of an execution with
+  [`native-image-agent`][assisted-configuration-of-native-image-builds]
+- [`nativeImageAgentOutputDir`](#nativeimageagentoutputdir):
+  directory where `native-image-agent` should put generated configurations
+- [`nativeImageAgentMerge`](#nativeimageagentmerge):
+  whether `native-image-agent` should merge generated configurations
 
 ### `nativeImage`
 
@@ -169,9 +180,7 @@ uses the [Cousier JVM index](https://github.com/coursier/jvm-index).
 
 **Description**: the base command that is used to launch native-image.
 
-**Default**: automatically installs GraalVM `native-image` via
-[Coursier](https://get-coursier.io/). Customize this setting if you prefer to
-manually install native-image.
+**Default**: resolves the command using `nativeImageGraalHome` task.
 
 **Example usage**: `nativeImageCommand := List("/path/to/native-image")`
 
@@ -205,6 +214,67 @@ else than Coursier.
 project. for available options.
 
 **Example usage**: `nativeImageOutput := file("target") / "my-binary"`
+
+### `nativeImageInstalled`
+
+**Type**: `SettingKey[Boolean]`
+
+**Description**: whether GraalVM is manually installed or should be downloaded with coursier.
+
+**Default**: checks if `NATIVE_IMAGE_INSTALLED` / `GRAALVM_INSTALLED` environment variables or
+`native-image-installed` / `graalvm-installed` properties are set to `true`.
+
+### `nativeImageGraalHome`
+
+**Type**: `TaskKey[Path]`
+
+**Description**: path to GraalVM home directory.
+
+**Default**: if `nativeImageInstalled` is `true`, then tries to read the path from
+environment variables 1) `GRAAL_HOME`, 2) `GRAALVM_HOME` or 3) `JAVA_HOME` (in given order).
+Otherwise, automatically installs GraalVM via [Coursier](https://get-coursier.io/).
+Customize this setting if you prefer to not to use environment variables.
+
+**Example usage**: `nativeImageGraalHome := file("/path/to/graalvm/base/directory").toPath`
+
+### `nativeImageRunAgent`
+
+**Type**: `InputKey[Unit]`
+
+**Description**: run application, tracking all usages of dynamic features of an execution with
+[`native-image-agent`][assisted-configuration-of-native-image-builds].
+
+**Example usage**:
+```
+# Step 0: Start sbt shell.
+$ sbt
+# Step 1: Run application on the JVM with native-image agent.
+> myProject/nativeImageRunAgent arg1 arg2 
+# Step 2: Create native-image binary with assisted configuration.
+> myProject/nativeImage
+# Step 3: Run native-image that was generated with assisted configuration.
+> myProject/nativeImageRun arg1 arg2
+```
+
+### `nativeImageAgentOutputDir`
+
+**Type**: `SettingKey[File]`
+
+**Description**: directory where `native-image-agent` should put generated configurations.
+
+**Default**: `baseDirectory.value / "native-image-configs"`
+
+**Example usage**: `nativeImageAgentOutputDir := baseDirectory.value / "native-image-agent" / "out"`
+
+### `nativeImageAgentMerge`
+
+**Type**: `SettingKey[Boolean]`
+
+**Description**: whether `native-image-agent` should merge generated configurations.
+
+**Default**: `false`
+
+**Example usage**: `nativeImageAgentMerge := true`
 
 ## Generate native-image from GitHub Actions
 
@@ -245,3 +315,5 @@ The key differences between sbt-native-packager and sbt-native-image are:
 - sbt-native-packager has Docker support, which is helpful if you need more
   fine-grained control over the linking environment. There are no plans to add
   Docker support in sbt-native-image.
+
+[assisted-configuration-of-native-image-builds]: https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds
