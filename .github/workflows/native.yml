@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - master
+      - main
   pull_request:
   release:
     types: [published]
@@ -40,7 +41,7 @@ jobs:
           "C:\Program Files (x86)\Microsoft Visual
           Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && sbt
           example/nativeImage
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@v2
         with:
           path: ${{ matrix.local_path }}
           name: ${{ matrix.uploaded_filename }}
