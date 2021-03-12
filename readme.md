@@ -87,17 +87,17 @@ native-image generation and to automate your native-image workflows.
 - [`nativeImageCoursier`](#nativeimagecoursier): the path to a `coursier` binary
 - [`nativeImageOutput`](#nativeimageoutput): the path to the generated
   native-image binary
-- [`nativeImageInstalled`](#nativeimageinstalled):
-  whether GraalVM is manually installed or should be downloaded with coursier
-- [`nativeImageGraalHome`](#nativeimagegraalhome):
-  path to GraalVM home directory
-- [`nativeImageRunAgent`](#nativeimagerunagent):
-  run application, tracking all usages of dynamic features of an execution with
+- [`nativeImageInstalled`](#nativeimageinstalled): whether GraalVM is manually
+  installed or should be downloaded with coursier
+- [`nativeImageGraalHome`](#nativeimagegraalhome): path to GraalVM home
+  directory
+- [`nativeImageRunAgent`](#nativeimagerunagent): run application, tracking all
+  usages of dynamic features of an execution with
   [`native-image-agent`][assisted-configuration-of-native-image-builds]
-- [`nativeImageAgentOutputDir`](#nativeimageagentoutputdir):
-  directory where `native-image-agent` should put generated configurations
-- [`nativeImageAgentMerge`](#nativeimageagentmerge):
-  whether `native-image-agent` should merge generated configurations
+- [`nativeImageAgentOutputDir`](#nativeimageagentoutputdir): directory where
+  `native-image-agent` should put generated configurations
+- [`nativeImageAgentMerge`](#nativeimageagentmerge): whether
+  `native-image-agent` should merge generated configurations
 
 ### `nativeImage`
 
@@ -219,10 +219,12 @@ project. for available options.
 
 **Type**: `SettingKey[Boolean]`
 
-**Description**: whether GraalVM is manually installed or should be downloaded with coursier.
+**Description**: whether GraalVM is manually installed or should be downloaded
+with coursier.
 
-**Default**: checks if `NATIVE_IMAGE_INSTALLED` / `GRAALVM_INSTALLED` environment variables or
-`native-image-installed` / `graalvm-installed` properties are set to `true`.
+**Default**: checks if `NATIVE_IMAGE_INSTALLED` / `GRAALVM_INSTALLED`
+environment variables or `native-image-installed` / `graalvm-installed`
+properties are set to `true`.
 
 ### `nativeImageGraalHome`
 
@@ -230,26 +232,46 @@ project. for available options.
 
 **Description**: path to GraalVM home directory.
 
-**Default**: if `nativeImageInstalled` is `true`, then tries to read the path from
-environment variables 1) `GRAAL_HOME`, 2) `GRAALVM_HOME` or 3) `JAVA_HOME` (in given order).
-Otherwise, automatically installs GraalVM via [Coursier](https://get-coursier.io/).
-Customize this setting if you prefer to not to use environment variables.
+**Default**: if `nativeImageInstalled` is `true`, then tries to read the path
+from environment variables 1) `GRAAL_HOME`, 2) `GRAALVM_HOME` or 3) `JAVA_HOME`
+(in given order). Otherwise, automatically installs GraalVM via
+[Coursier](https://get-coursier.io/). Customize this setting if you prefer to
+not to use environment variables.
 
-**Example usage**: `nativeImageGraalHome := file("/path/to/graalvm/base/directory").toPath`
+**Example usage**:
+`nativeImageGraalHome := file("/path/to/graalvm/base/directory").toPath`
 
 ### `nativeImageRunAgent`
 
 **Type**: `InputKey[Unit]`
 
-**Description**: run application, tracking all usages of dynamic features of an execution with
+**Description**: run application, tracking all usages of dynamic features of an
+execution with
 [`native-image-agent`][assisted-configuration-of-native-image-builds].
 
 **Example usage**:
+
+First, add the reflection configuration to the native image options
+
+```diff
+  // build.sbt
+
+lazy val myNativeProject = project
+  .settings(
++    nativeImageOptions +=
++        s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}"
+  )
+  .enablePlugins(NativeImagePlugin)
 ```
+
+Then, make sure to generate the reflection configuration with
+`nativeImageRunAgent` before running `nativeImage`.
+
+```sh
 # Step 0: Start sbt shell.
 $ sbt
 # Step 1: Run application on the JVM with native-image agent.
-> myProject/nativeImageRunAgent arg1 arg2 
+> myProject/nativeImageRunAgent " arg1 arg2"
 # Step 2: Create native-image binary with assisted configuration.
 > myProject/nativeImage
 # Step 3: Run native-image that was generated with assisted configuration.
@@ -260,17 +282,20 @@ $ sbt
 
 **Type**: `SettingKey[File]`
 
-**Description**: directory where `native-image-agent` should put generated configurations.
+**Description**: directory where `native-image-agent` should put generated
+configurations.
 
 **Default**: `baseDirectory.value / "native-image-configs"`
 
-**Example usage**: `nativeImageAgentOutputDir := baseDirectory.value / "native-image-agent" / "out"`
+**Example usage**:
+`nativeImageAgentOutputDir := baseDirectory.value / "native-image-agent" / "out"`
 
 ### `nativeImageAgentMerge`
 
 **Type**: `SettingKey[Boolean]`
 
-**Description**: whether `native-image-agent` should merge generated configurations.
+**Description**: whether `native-image-agent` should merge generated
+configurations.
 
 **Default**: `false`
 
@@ -316,4 +341,5 @@ The key differences between sbt-native-packager and sbt-native-image are:
   fine-grained control over the linking environment. There are no plans to add
   Docker support in sbt-native-image.
 
-[assisted-configuration-of-native-image-builds]: https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds
+[assisted-configuration-of-native-image-builds]:
+  https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds
