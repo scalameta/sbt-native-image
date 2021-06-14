@@ -311,7 +311,20 @@ object NativeImagePlugin extends AutoPlugin {
     val syntax = if (Properties.isWin) {
       // NOTE(danirey): absolute paths are not supported by all JDKs on Windows, therefore using relative paths
       // relative paths may not be URL-encoded, otherwise an absolute path is constructed
-      Paths.get(manifestJar.getParent).relativize(Paths.get(path.getPath)).toString
+      val manifestPath = Paths.get(manifestJar.getParent)
+      val dependencyPath = Paths.get(path.getPath)
+      try {
+        manifestPath.relativize(dependencyPath).toString
+      } catch {
+        //java.lang.IllegalArgumentException: 'other' has different root
+        //this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
+        //copy dependency next to manifest as fallback
+        case _: IllegalArgumentException =>
+          import java.nio.file.Files
+          import java.nio.file.StandardCopyOption
+          Files.copy(dependencyPath, manifestPath.resolve(path.getName), StandardCopyOption.REPLACE_EXISTING)
+          path.getName
+      }
     } else {
       // NOTE(olafur): manifest jars must use URL-encoded paths.
       // https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html
