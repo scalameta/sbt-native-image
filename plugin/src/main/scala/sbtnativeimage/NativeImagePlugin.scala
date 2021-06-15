@@ -1,24 +1,21 @@
 package sbtnativeimage
 
-import java.io.File
-import java.nio.file.{ Files, Path, Paths, StandardCopyOption }
-import java.util.jar.Attributes
-import java.util.jar.JarOutputStream
-import java.util.jar.Manifest
+import sbt.Keys._
+import sbt._
+import sbt.complete.DefaultParsers._
+import sbt.plugins.JvmPlugin
 
+import java.io.File
+import java.nio.file.{Files, Path, Paths, StandardCopyOption}
+import java.util.jar.{Attributes, JarOutputStream, Manifest}
 import scala.collection.mutable
 import scala.sys.process.Process
 import scala.util.Properties
 import scala.util.control.NonFatal
 
-import sbt.Keys._
-import sbt._
-import sbt.plugins.JvmPlugin
-import sbt.complete.DefaultParsers._
-import scala.util.Try
-
 object NativeImagePlugin extends AutoPlugin {
   override def requires = JvmPlugin
+
   object autoImport {
     val NativeImage: Configuration = config("native-image")
     val NativeImageInternal: Configuration =
@@ -81,12 +78,13 @@ object NativeImagePlugin extends AutoPlugin {
     private lazy val assistedConfigurationOfNativeImageBuildsLink =
       "https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds"
   }
+
   import autoImport._
 
   private def copyResource(
-      filename: String,
-      outDir: File
-  ): File = {
+                            filename: String,
+                            outDir: File
+                          ): File = {
     Files.createDirectories(outDir.toPath)
     val in =
       this.getClass().getResourceAsStream(s"/sbt-native-image/${filename}")
@@ -101,6 +99,7 @@ object NativeImagePlugin extends AutoPlugin {
     out.toFile.setExecutable(true)
     out.toFile
   }
+
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
     target.in(NativeImage) :=
@@ -131,9 +130,9 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageInstalled := Def.settingDyn {
       val installed =
         "true".equalsIgnoreCase(System.getProperty("native-image-installed")) ||
-        "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED")) ||
-        "true".equalsIgnoreCase(System.getProperty("graalvm-installed")) ||
-        "true".equalsIgnoreCase(System.getenv("GRAALVM_INSTALLED"))
+          "true".equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED")) ||
+          "true".equalsIgnoreCase(System.getProperty("graalvm-installed")) ||
+          "true".equalsIgnoreCase(System.getenv("GRAALVM_INSTALLED"))
       Def.setting(installed)
     }.value,
     nativeImageGraalHome := Def.taskDyn {
@@ -201,16 +200,16 @@ object NativeImagePlugin extends AutoPlugin {
       val agentOption = s"-agentlib:native-image-agent=$agentConfig=${nativeImageAgentOutputDir.value}"
       val tpr = thisProjectRef.value
       val settings = Seq(
-        fork in (tpr, Compile, run) := true,
-        javaHome in (tpr, Compile, run) := Some(graalHome),
-        javaOptions in (tpr, Compile, run) += agentOption
+        fork in(tpr, Compile, run) := true,
+        javaHome in(tpr, Compile, run) := Some(graalHome),
+        javaOptions in(tpr, Compile, run) += agentOption
       )
       val state0 = state.value
       val extracted = Project.extract(state0)
       val newState = extracted.append(settings, state0)
       val arguments = spaceDelimited("<arg>").parsed
       val input = if (arguments.isEmpty) "" else arguments.mkString(" ")
-      Project.extract(newState).runInputTask(run in (tpr, Compile), input, newState)
+      Project.extract(newState).runInputTask(run in(tpr, Compile), input, newState)
     },
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
@@ -251,9 +250,7 @@ object NativeImagePlugin extends AutoPlugin {
       val manifest = target.in(NativeImageInternal).value / "manifest.jar"
       manifest.getParentFile().mkdirs()
       createManifestJar(manifest, cp)
-      val nativeClasspath =
-        if (Properties.isWin) cp.mkString(File.pathSeparator)
-        else manifest.absolutePath
+      val nativeClasspath = manifest.absolutePath
 
       // Assemble native-image argument list.
       val command = mutable.ListBuffer.empty[String]
@@ -292,7 +289,7 @@ object NativeImagePlugin extends AutoPlugin {
   private def createManifestJar(manifestJar: File, cp: Seq[File]): Unit = {
     // Add trailing slash to directories so that manifest dir entries work
     val classpathStr =
-      cp.map(addTrailingSlashToDirectories).mkString(" ")
+      cp.map(addTrailingSlashToDirectories(manifestJar)).mkString(" ")
     val manifest = new Manifest()
     manifest.getMainAttributes.put(Attributes.Name.MANIFEST_VERSION, "1.0")
     manifest.getMainAttributes.put(Attributes.Name.CLASS_PATH, classpathStr)
@@ -310,10 +307,30 @@ object NativeImagePlugin extends AutoPlugin {
     }
   }
 
-  private def addTrailingSlashToDirectories(path: File): String = {
-    // NOTE(olafur): manifest jars must use URL-encoded paths.
-    // https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html
-    val syntax = path.toURI.toURL.getPath
+  private def addTrailingSlashToDirectories(manifestJar: File)(path: File): String = {
+    val syntax = if (Properties.isWin) {
+      // NOTE(danirey): absolute paths are not supported by all JDKs on Windows, therefore using relative paths
+      // relative paths may not be URL-encoded, otherwise an absolute path is constructed
+      val manifestPath = Paths.get(manifestJar.getParent)
+      val dependencyPath = Paths.get(path.getPath)
+      try {
+        manifestPath.relativize(dependencyPath).toString
+      } catch {
+        //java.lang.IllegalArgumentException: 'other' has different root
+        //this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
+        //copy dependency next to manifest as fallback
+        case _: IllegalArgumentException =>
+          import java.nio.file.Files
+          import java.nio.file.StandardCopyOption
+          Files.copy(dependencyPath, manifestPath.resolve(path.getName), StandardCopyOption.REPLACE_EXISTING)
+          path.getName
+      }
+    } else {
+      // NOTE(olafur): manifest jars must use URL-encoded paths.
+      // https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html
+      path.toURI.toURL.getPath
+    }
+
     val separatorAdded = {
       if (syntax.endsWith(".jar") || syntax.endsWith(File.separator)) {
         syntax
@@ -321,13 +338,7 @@ object NativeImagePlugin extends AutoPlugin {
         syntax + File.separator
       }
     }
-    if (Properties.isWin) {
-      // Prepend drive letters in windows with slash
-      if (separatorAdded.indexOf(":") != 1) separatorAdded
-      else File.separator + separatorAdded
-    } else {
-      separatorAdded
-    }
+    separatorAdded
   }
 
   private def alertUser(streams: std.TaskStreams[_], message: String): Unit = {
