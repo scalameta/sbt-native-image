@@ -42,7 +42,11 @@ configure the main class.
 +   .enablePlugins(NativeImagePlugin)
     .settings(
       // ...
-+     Compile / mainClass := Some("com.my.MainClass")
++     Compile / mainClass := Some("com.my.MainClass"),
+      // These options (and running `nativeImageRunAgent` command ) may be necessary if your app or any dependency uses reflection or JNI.
++     nativeImageOptions += s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}",
++     nativeImageOptions += s"-H:ConfigurationFileDirectories=${target.value / "native-image-configs" }",
++     nativeImageOptions +="-H:+JNI",
     )
 ```
 
