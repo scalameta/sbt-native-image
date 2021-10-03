@@ -30,7 +30,7 @@ First, add the sbt plugin to your build in `project/plugins.sbt`.
 
 ```scala
 // project/plugins.sbt
-addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.3.0")
+addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.3.1")
 ```
 
 Next, enable the plugin to your native-image application in `build.sbt` and
