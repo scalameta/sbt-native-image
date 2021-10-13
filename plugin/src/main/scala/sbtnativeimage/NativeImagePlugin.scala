@@ -217,6 +217,7 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageAgentOutputDir := target.value / "native-image-configs",
     nativeImageAgentMerge := false,
     nativeImageRunAgent := {
+      val _ = nativeImageCommand.value
       val graalHome = nativeImageGraalHome.value.toFile
       val agentConfig =
         if (nativeImageAgentMerge.value)
