@@ -42,13 +42,12 @@ configure the main class.
 +   .enablePlugins(NativeImagePlugin)
     .settings(
       // ...
-+     Compile / mainClass := Some("com.my.MainClass"),
-      // These options (and running `nativeImageRunAgent` command ) may be necessary if your app or any dependency uses reflection or JNI.
-+     nativeImageOptions += s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}",
-+     nativeImageOptions += s"-H:ConfigurationFileDirectories=${target.value / "native-image-configs" }",
-+     nativeImageOptions +="-H:+JNI",
++     Compile / mainClass := Some("com.my.MainClass")
     )
 ```
+
+Additionally, if your app uses reflection or JNI, you may need to run `nativeImageRunAgent` command to capture runtime information. For more details, see [`nativeImageRunAgent`](#nativeimagerunagent) section.
+
 
 Finally, run the `nativeImage` task to generate the binary.
 
@@ -253,6 +252,8 @@ not to use environment variables.
 execution with
 [`native-image-agent`][assisted-configuration-of-native-image-builds].
 
+You may need to run this command if your app or any dependency uses reflection or JNI.
+
 **Example usage**:
 
 First, add the reflection configuration to the native image options
@@ -262,8 +263,9 @@ First, add the reflection configuration to the native image options
 
 lazy val myNativeProject = project
   .settings(
-+    nativeImageOptions +=
-+        s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}"
++     nativeImageOptions += s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}",
++     nativeImageOptions += s"-H:ConfigurationFileDirectories=${target.value / "native-image-configs" }",
++     nativeImageOptions +="-H:+JNI"
   )
   .enablePlugins(NativeImagePlugin)
 ```
