@@ -24,7 +24,7 @@ inThisBuild(
 )
 
 crossScalaVersions := Nil
-skip.in(publish) := true
+publish / skip := true
 
 commands +=
   Command.command("fixAll") { s =>
@@ -37,12 +37,15 @@ commands +=
       "publishLocal" :: s
   }
 
+Global / excludeLintKeys += crossSbtVersions
+//supress [warn] * plugin / crossSbtVersions
+// https://github.com/sbt/sbt/issues/6571 and will be fixed https://github.com/sbt/sbt/pull/6656
 lazy val plugin = project
   .in(file("plugin"))
   .settings(
     moduleName := "sbt-native-image",
     sbtPlugin := true,
-    sbtVersion.in(pluginCrossBuild) := "1.0.0",
+    crossSbtVersions := Vector("0.13.16", "1.0.0"),
     crossScalaVersions := List(scala212),
     buildInfoPackage := "sbtnativeimage",
     buildInfoKeys := Seq[BuildInfoKey](version),
@@ -55,8 +58,8 @@ lazy val plugin = project
 lazy val example = project
   .in(file("example"))
   .settings(
-    skip.in(publish) := true,
-    mainClass.in(Compile) := Some("example.Hello"),
+    publish / skip := true,
+    Compile / mainClass := Some("example.Hello"),
     test := {
       val binary = nativeImage.value
       val output = scala.sys.process.Process(List(binary.toString)).!!.trim
