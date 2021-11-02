@@ -30,7 +30,7 @@ First, add the sbt plugin to your build in `project/plugins.sbt`.
 
 ```scala
 // project/plugins.sbt
-addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.3.0")
+addSbtPlugin("org.scalameta" % "sbt-native-image" % "0.3.1")
 ```
 
 Next, enable the plugin to your native-image application in `build.sbt` and
@@ -45,6 +45,9 @@ configure the main class.
 +     Compile / mainClass := Some("com.my.MainClass")
     )
 ```
+
+Additionally, if your app uses reflection or JNI, you may need to run `nativeImageRunAgent` command to capture runtime information. For more details, see [`nativeImageRunAgent`](#nativeimagerunagent) section.
+
 
 Finally, run the `nativeImage` task to generate the binary.
 
@@ -253,6 +256,8 @@ not to use environment variables.
 execution with
 [`native-image-agent`][assisted-configuration-of-native-image-builds].
 
+You may need to run this command if your app or any dependency uses reflection or JNI.
+
 **Example usage**:
 
 First, add the reflection configuration to the native image options
@@ -262,8 +267,9 @@ First, add the reflection configuration to the native image options
 
 lazy val myNativeProject = project
   .settings(
-+    nativeImageOptions +=
-+        s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}"
++     nativeImageOptions += s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}",
++     nativeImageOptions += s"-H:ConfigurationFileDirectories=${target.value / "native-image-configs" }",
++     nativeImageOptions +="-H:+JNI"
   )
   .enablePlugins(NativeImagePlugin)
 ```
