@@ -26,7 +26,7 @@ jobs:
             uploaded_filename: example-x86_64-pc-win32.exe
             local_path: example\target\native-image\example.exe
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
       - run: git fetch --tags || true
       - run: sbt example/nativeImage

@@ -15,7 +15,7 @@ jobs:
         os: [macOS-latest, ubuntu-latest, windows-latest]
         java: [8]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
         with:
           java-version: "adopt@1.${{ matrix.java }}"
@@ -39,6 +39,6 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
       - run: sbt checkAll
