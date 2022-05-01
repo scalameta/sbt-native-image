@@ -46,7 +46,7 @@ jobs:
         run: |
           echo $(pwd)
           sbt clean example/nativeImage
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           path: ${{ matrix.local_path }}
           name: ${{ matrix.uploaded_filename }}
