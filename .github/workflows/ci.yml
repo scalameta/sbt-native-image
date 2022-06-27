@@ -6,19 +6,22 @@ on:
       - main
   pull_request:
 jobs:
-  unix:
+  native-image:
     name: Compile
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
+        os: [macOS-latest, ubuntu-latest, windows-2019]
         java: [8]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
         with:
           java-version: "adopt@1.${{ matrix.java }}"
+      - name: Setup Windows C++ toolchain
+        uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ matrix.os == 'windows-2019' }}
       - name: sbt test plugin/scripted
         if: ${{ matrix.os == 'ubuntu-latest' }}
         shell: bash
@@ -30,15 +33,13 @@ jobs:
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt test plugin/scripted
       - name: sbt test
-        shell: cmd
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: >-
-          "C:\Program Files (x86)\Microsoft Visual
-          Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat" && sbt
-          example/nativeImage
+        shell: bash
+        if: ${{ matrix.os == 'windows-2019' }}
+        run: |
+          sbt example/nativeImage
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
       - run: sbt checkAll
