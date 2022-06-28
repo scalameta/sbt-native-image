@@ -115,7 +115,7 @@ object NativeImagePlugin extends AutoPlugin {
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageJvm := "graalvm-java11",
     nativeImageJvmIndex := "cs",
-    nativeImageVersion := "20.2.0",
+    nativeImageVersion := "20.2.1",
     name.in(NativeImage) := name.value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
     nativeImageOptions := List(),
