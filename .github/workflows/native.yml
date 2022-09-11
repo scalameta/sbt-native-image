@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-2019]
+        os: [macOS-latest, ubuntu-latest, windows-latest]
         include:
           # Replace "example" with the name your binary
           - os: macOS-latest
@@ -22,7 +22,7 @@ jobs:
           - os: ubuntu-latest
             uploaded_filename: example-x86_64-pc-linux
             local_path: example/target/native-image/example
-          - os: windows-2019
+          - os: windows-latest
             uploaded_filename: example-x86_64-pc-win32.exe
             local_path: example\target\native-image\example.exe
     env:
@@ -40,7 +40,7 @@ jobs:
       - run: git fetch --tags || true
       - name: Setup Windows C++ toolchain
         uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ matrix.os == 'windows-2019' }}
+        if: ${{ matrix.os == 'windows-latest' }}
       - name: Build
         shell: bash
         run: |

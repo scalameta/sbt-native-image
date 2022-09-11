@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-2019]
+        os: [macOS-latest, ubuntu-latest, windows-latest]
         java: [8]
     steps:
       - uses: actions/checkout@v3
@@ -21,7 +21,7 @@ jobs:
           java-version: "adopt@1.${{ matrix.java }}"
       - name: Setup Windows C++ toolchain
         uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ matrix.os == 'windows-2019' }}
+        if: ${{ matrix.os == 'windows-latest' }}
       - name: sbt test plugin/scripted
         if: ${{ matrix.os == 'ubuntu-latest' }}
         shell: bash
@@ -34,7 +34,7 @@ jobs:
           sbt test plugin/scripted
       - name: sbt test
         shell: bash
-        if: ${{ matrix.os == 'windows-2019' }}
+        if: ${{ matrix.os == 'windows-latest' }}
         run: |
           sbt example/nativeImage
   check:
