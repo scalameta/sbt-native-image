@@ -11,7 +11,7 @@ class Hello5Spec extends AnyFlatSpec {
   behavior of "Hello5"
 
   it should "append Hello5 output" in {
-    Hello4.main(Array.empty)
+    Hello5.main(Array.empty)
     assert(new File("hello5.obtained").exists())
 
     Files.write(
