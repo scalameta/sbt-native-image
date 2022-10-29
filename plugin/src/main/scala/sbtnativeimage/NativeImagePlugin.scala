@@ -63,11 +63,21 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageRunAgent: InputKey[Unit] = inputKey[Unit](
       "Run application, tracking all usages of dynamic features of an execution with `native-image-agent`."
     )
+    lazy val nativeImageTestRunAgent: InputKey[Unit] = inputKey[Unit](
+      "Run tests, tracking all usages of dynamic features of an execution with `native-image-agent`."
+    )
     lazy val nativeImageAgentOutputDir: SettingKey[File] = settingKey[File](
       "Directory where `native-image-agent` should put generated configurations."
     )
+    lazy val nativeImageTestAgentOutputDir: SettingKey[File] = settingKey[File](
+      "Directory where `native-image-agent` should put generated configurations for tests."
+    )
     lazy val nativeImageAgentMerge: SettingKey[Boolean] = settingKey[Boolean](
       "Whether `native-image-agent` should merge generated configurations." +
+        s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
+    )
+    lazy val nativeImageTestAgentMerge: SettingKey[Boolean] = settingKey[Boolean](
+      "Whether `native-image-agent` should merge generated configurations for tests." +
         s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
     )
     lazy val nativeImage: TaskKey[File] = taskKey[File](
@@ -247,7 +257,9 @@ object NativeImagePlugin extends AutoPlugin {
         .value,
     nativeImageTestCommand := nativeImageCommand.value,
     nativeImageAgentOutputDir := target.value / "native-image-configs",
+    nativeImageTestAgentOutputDir := target.value / "native-image-test-configs",
     nativeImageAgentMerge := false,
+    nativeImageTestAgentMerge := nativeImageAgentMerge.value,
     nativeImageRunAgent := {
       val _ = nativeImageCommand.value
       val graalHome = nativeImageGraalHome.value.toFile
@@ -276,6 +288,35 @@ object NativeImagePlugin extends AutoPlugin {
       Project
         .extract(newState)
         .runInputTask(run in (tpr, Compile), input, newState)
+    },
+    nativeImageTestRunAgent := {
+      val _ = nativeImageTestCommand.value
+      val graalHome = nativeImageGraalHome.value.toFile
+      val agentConfig =
+        if (nativeImageTestAgentMerge.value)
+          "config-merge-dir"
+        else
+          "config-output-dir"
+      val agentOption =
+        s"-agentlib:native-image-agent=$agentConfig=${nativeImageTestAgentOutputDir.value}"
+      val tpr = thisProjectRef.value
+      val settings = Seq(
+        fork in (tpr, Test, run) := true,
+        javaHome in (tpr, Test, run) := Some(graalHome),
+        javaOptions in (tpr, Test, run) += agentOption
+      )
+      val state0 = state.value
+      val extracted = Project.extract(state0)
+      val newState = extracted.append(settings, state0)
+      val arguments = spaceDelimited("<arg>").parsed
+      val input =
+        if (arguments.isEmpty)
+          ""
+        else
+          arguments.mkString(" ")
+      Project
+        .extract(newState)
+        .runInputTask(run in (tpr, Test), input, newState)
     },
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
