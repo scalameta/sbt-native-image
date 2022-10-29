@@ -16,7 +16,7 @@ class Hello4Spec extends AnyFlatSpec {
 
     Files.write(
       Paths.get("hello4.obtained"),
-      "Tested".getBytes(StandardCharsets.UTF_8),
+      "-tested".getBytes(StandardCharsets.UTF_8),
       StandardOpenOption.APPEND
     )
   }
