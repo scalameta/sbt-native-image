@@ -257,7 +257,7 @@ object NativeImagePlugin extends AutoPlugin {
         .value,
     nativeImageTestCommand := nativeImageCommand.value,
     nativeImageAgentOutputDir := target.value / "native-image-configs",
-    nativeImageTestAgentOutputDir := target.value / "native-image-test-configs",
+    nativeImageTestAgentOutputDir := nativeImageAgentOutputDir.value,
     nativeImageAgentMerge := false,
     nativeImageTestAgentMerge := nativeImageAgentMerge.value,
     nativeImageRunAgent := {
@@ -430,7 +430,7 @@ object NativeImagePlugin extends AutoPlugin {
       command +=
         main.getOrElse(
           throw new MessageOnlyException(
-            "no mainClass is specified. " +
+            "no mainClass is specified for tests. " +
               "To fix this problem, update build.sbt to include the settings " +
               "`mainClass.in(Test) := Some(\"com.MainClass\")`"
           )
