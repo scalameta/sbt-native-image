@@ -8,7 +8,11 @@ lazy val example = project
       "2.13.3"
     ),
     mainClass.in(Compile) := Some("example.Hello5"),
-    nativeImageOptions += "--no-fallback",
+    nativeImageTestOptions ++= Seq(
+      "--initialize-at-build-time=scala.collection.immutable.VM"
+    ),
+    mainClass.in(Test) := Some("org.scalatest.tools.Runner"),
+    nativeImageTestRunOptions ++= Seq("-o", "-R", classDirectory.in(Test).value.absolutePath),
     nativeImageCommand := List(
       sys.env.getOrElse(
         "NATIVE_IMAGE_COMMAND",

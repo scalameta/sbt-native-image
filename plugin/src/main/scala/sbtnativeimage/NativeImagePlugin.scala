@@ -92,6 +92,9 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageTestRun: InputKey[Unit] = inputKey[Unit](
       "Run the generated native-image binary for tests without linking."
     )
+    lazy val nativeImageTestRunOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
+      "Extra command-line arguments that should be forwarded to the tests."
+    )
     lazy val nativeImageCopy: InputKey[Unit] = inputKey[Unit](
       "Link the native image and copy the resulting binary to the provided file argument."
     )
@@ -160,6 +163,7 @@ object NativeImagePlugin extends AutoPlugin {
     mainClass.in(NativeImageTest) := mainClass.in(Test).value,
     nativeImageOptions := List(),
     nativeImageTestOptions := nativeImageOptions.value,
+    nativeImageTestRunOptions := List(),
     nativeImageCoursier := {
       val dir = target.in(NativeImageInternal).value
       val out = copyResource("coursier", dir)
@@ -292,6 +296,7 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageTestRunAgent := {
       val _ = nativeImageTestCommand.value
       val graalHome = nativeImageGraalHome.value.toFile
+
       val agentConfig =
         if (nativeImageTestAgentMerge.value)
           "config-merge-dir"
@@ -299,24 +304,37 @@ object NativeImagePlugin extends AutoPlugin {
           "config-output-dir"
       val agentOption =
         s"-agentlib:native-image-agent=$agentConfig=${nativeImageTestAgentOutputDir.value}"
-      val tpr = thisProjectRef.value
-      val settings = Seq(
-        fork in (tpr, Test, run) := true,
-        javaHome in (tpr, Test, run) := Some(graalHome),
-        javaOptions in (tpr, Test, run) += agentOption
-      )
-      val state0 = state.value
-      val extracted = Project.extract(state0)
-      val newState = extracted.append(settings, state0)
-      val arguments = spaceDelimited("<arg>").parsed
-      val input =
-        if (arguments.isEmpty)
-          ""
-        else
-          arguments.mkString(" ")
-      Project
-        .extract(newState)
-        .runInputTask(run in (tpr, Test), input, newState)
+
+      val options = (javaOptions in (Test, run)).value ++ Seq(agentOption)
+
+      val __ = compile.in(Test).value
+      val main = mainClass.in(NativeImageTest).value
+      val cp = fullClasspath.in(Test).value.map(_.data)
+      val manifest = target.in(NativeImageTestInternal).value / "manifest.jar"
+      manifest.getParentFile().mkdirs()
+      createManifestJar(manifest, cp)
+      val nativeClasspath = manifest.absolutePath
+
+      val command = mutable.ListBuffer.empty[String]
+      command += (graalHome / "bin" / "java").absolutePath
+      command ++= options
+      command += "-cp"
+      command += nativeClasspath
+      command +=
+        main.getOrElse(
+          throw new MessageOnlyException(
+            "no mainClass is specified for tests. " +
+              "To fix this problem, update build.sbt to include the settings " +
+              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+          )
+        )
+      command ++= nativeImageTestRunOptions.value
+
+      val projectRoot = baseDirectory.value
+      val exitCode = Process(command, cwd = Some(projectRoot)).!
+      if (exitCode != 0) {
+        throw new Exception(s"Native image build failed:\n ${command}")
+      }
     },
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
@@ -352,8 +370,7 @@ object NativeImagePlugin extends AutoPlugin {
           s"no such file: $binary.\nTo fix this problem, run 'nativeImageTest' first."
         )
       }
-      val arguments = spaceDelimited("<arg>").parsed.toList
-      val exit = Process(binary.absolutePath :: arguments).!
+      val exit = Process(binary.absolutePath :: nativeImageTestRunOptions.value.toList).!
       if (exit != 0) {
         throw new MessageOnlyException(s"non-zero exit: $exit")
       }
@@ -424,15 +441,15 @@ object NativeImagePlugin extends AutoPlugin {
       // Assemble native-image argument list.
       val command = mutable.ListBuffer.empty[String]
       command ++= nativeImageTestCommand.value
+      command ++= nativeImageTestOptions.value
       command += "-cp"
       command += nativeClasspath
-      command ++= nativeImageTestOptions.value
       command +=
         main.getOrElse(
           throw new MessageOnlyException(
             "no mainClass is specified for tests. " +
               "To fix this problem, update build.sbt to include the settings " +
-              "`mainClass.in(Test) := Some(\"com.MainClass\")`"
+              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
           )
         )
       command += binaryName.absolutePath

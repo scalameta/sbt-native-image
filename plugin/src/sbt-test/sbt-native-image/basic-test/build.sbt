@@ -10,6 +10,11 @@ lazy val example = project
           "variable to point to the absolute path of this binary."
       )
     ),
+    nativeImageTestOptions ++= Seq(
+      "--initialize-at-build-time=scala.collection.immutable.VM"
+    ),
+    mainClass.in(Test) := Some("org.scalatest.tools.Runner"),
+    nativeImageTestRunOptions ++= Seq("-o", "-R", classDirectory.in(Test).value.absolutePath),
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.14" % "test"
   )
   .enablePlugins(NativeImagePlugin)

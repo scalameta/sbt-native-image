@@ -3,9 +3,11 @@ lazy val example = project
     scalaVersion := "2.12.12",
     mainClass.in(Compile) := Some("example.Hello6"),
     nativeImageTestOptions ++= Seq(
-      "--no-fallback",
-      s"-H:ReflectionConfigurationFiles=${ target.value / "native-image-test-configs" / "reflect-config.json" }"
+      s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}",
+      "--initialize-at-build-time=scala.collection.immutable.VM",
     ),
+    mainClass.in(Test) := Some("org.scalatest.tools.Runner"),
+    nativeImageTestRunOptions ++= Seq("-o", "-R", classDirectory.in(Test).value.absolutePath),
     nativeImageCommand := List(
       sys.env.getOrElse(
         "NATIVE_IMAGE_COMMAND",
