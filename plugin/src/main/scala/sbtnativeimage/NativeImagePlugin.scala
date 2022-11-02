@@ -331,6 +331,7 @@ object NativeImagePlugin extends AutoPlugin {
       command ++= nativeImageTestRunOptions.value
 
       val projectRoot = baseDirectory.value
+      streams.value.log.info(command.mkString(" "))
       val exitCode = Process(command, cwd = Some(projectRoot)).!
       if (exitCode != 0) {
         throw new Exception(s"Native image build failed:\n ${command}")
