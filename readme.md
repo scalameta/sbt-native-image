@@ -167,8 +167,8 @@ CI to generate the binary in a specific place.
 
 |nativeImageJvm|nativeImageVersion|nativeImageJvmIndex|source|
 |---|---|---|---|
-|graalvm, graalvm-java11|1.0.0-x,19.0.0~21.1.0|cs|https://github.com/coursier/jvm-index|
-|graalvm-ce-java8, graalvm-ce-java11, gaalvm-ce-java16|19.3~21.1.0|jabba|https://raw.githubusercontent.com/shyiko/jabba/master/index.json|
+|graalvm, graalvm-java11, graalvm-java17|1.0.0-x,19.0.0~21.1.0|cs|https://github.com/coursier/jvm-index|
+|graalvm-ce-java8, graalvm-ce-java11, graalvm-ce-java16|19.3~21.1.0|jabba|https://raw.githubusercontent.com/shyiko/jabba/master/index.json|
 
 ### `nativeImageJvmIndex`
 
