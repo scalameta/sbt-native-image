@@ -61,6 +61,9 @@ object NativeImagePlugin extends AutoPlugin {
       "Whether `native-image-agent` should merge generated configurations." +
         s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
     )
+    lazy val nativeImageAgentExtraConfigs: SettingKey[Seq[String]] = settingKey[Seq[String]](
+      "TODO"
+    )
     lazy val nativeImage: TaskKey[File] = taskKey[File](
       "Generate a native image for this project."
     )
@@ -216,16 +219,17 @@ object NativeImagePlugin extends AutoPlugin {
         .value,
     nativeImageAgentOutputDir := target.value / "native-image-configs",
     nativeImageAgentMerge := false,
+    nativeImageAgentExtraConfigs := Seq.empty,
     nativeImageRunAgent := {
       val _ = nativeImageCommand.value
       val graalHome = nativeImageGraalHome.value.toFile
-      val agentConfig =
+      val agentOutputOrMergeConfigDirKey =
         if (nativeImageAgentMerge.value)
           "config-merge-dir"
         else
           "config-output-dir"
       val agentOption =
-        s"-agentlib:native-image-agent=$agentConfig=${nativeImageAgentOutputDir.value}"
+        s"-agentlib:native-image-agent=$agentOutputOrMergeConfigDirKey=${nativeImageAgentOutputDir.value},${nativeImageAgentExtraConfigs.value.mkString(",")}"
       val tpr = thisProjectRef.value
       val settings = Seq(
         fork in (tpr, Compile, run) := true,
