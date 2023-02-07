@@ -59,11 +59,13 @@ object NativeImagePlugin extends AutoPlugin {
     )
     lazy val nativeImageAgentMerge: SettingKey[Boolean] = settingKey[Boolean](
       "Whether `native-image-agent` should merge generated configurations." +
-        s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
+        s" (See $automaticMetadataCollectionLink for details)"
     )
-    lazy val nativeImageAgentExtraConfigs: SettingKey[Seq[String]] = settingKey[Seq[String]](
-      "TODO"
-    )
+    lazy val nativeImageAgentExtraConfigs: SettingKey[Seq[String]] =
+      settingKey[Seq[String]](
+        "Extra options to pass to native-image-agent." +
+          s" (See $experimentalAgentOptionsLink for details)"
+      )
     lazy val nativeImage: TaskKey[File] = taskKey[File](
       "Generate a native image for this project."
     )
@@ -80,8 +82,10 @@ object NativeImagePlugin extends AutoPlugin {
       "Extra command-line arguments that should be forwarded to the native-image optimizer."
     )
 
-    private lazy val assistedConfigurationOfNativeImageBuildsLink =
-      "https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds"
+    private lazy val experimentalAgentOptionsLink =
+      "https://www.graalvm.org/latest/reference-manual/native-image/metadata/ExperimentalAgentOptions/"
+    private lazy val automaticMetadataCollectionLink =
+      "https://www.graalvm.org/latest/reference-manual/native-image/metadata/AutomaticMetadataCollection/"
   }
 
   import autoImport._
@@ -228,13 +232,14 @@ object NativeImagePlugin extends AutoPlugin {
           "config-merge-dir"
         else
           "config-output-dir"
-      val agentOption =
-        s"-agentlib:native-image-agent=$agentOutputOrMergeConfigDirKey=${nativeImageAgentOutputDir.value},${nativeImageAgentExtraConfigs.value.mkString(",")}"
+      val agentOptions =
+        s"-agentlib:native-image-agent=$agentOutputOrMergeConfigDirKey=${nativeImageAgentOutputDir.value}" +
+          nativeImageAgentExtraConfigs.value.mkString(",")
       val tpr = thisProjectRef.value
       val settings = Seq(
         fork in (tpr, Compile, run) := true,
         javaHome in (tpr, Compile, run) := Some(graalHome),
-        javaOptions in (tpr, Compile, run) += agentOption
+        javaOptions in (tpr, Compile, run) += agentOptions
       )
       val state0 = state.value
       val extracted = Project.extract(state0)
