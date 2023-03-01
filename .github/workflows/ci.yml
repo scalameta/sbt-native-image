@@ -16,7 +16,7 @@ jobs:
         java: [8]
     steps:
       - uses: actions/checkout@v3
-      - uses: olafurpg/setup-scala@v13
+      - uses: olafurpg/setup-scala@v14
         with:
           java-version: "adopt@1.${{ matrix.java }}"
       - name: Setup Windows C++ toolchain
@@ -41,5 +41,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: olafurpg/setup-scala@v13
+      - uses: olafurpg/setup-scala@v14
       - run: sbt checkAll
