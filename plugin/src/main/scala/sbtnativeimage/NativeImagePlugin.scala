@@ -24,11 +24,17 @@ object NativeImagePlugin extends AutoPlugin {
 
   object autoImport {
     val NativeImage: Configuration = config("native-image")
+    val NativeImageTest: Configuration = config("native-image-test")
     val NativeImageInternal: Configuration =
       config("native-image-internal").hide
+    val NativeImageTestInternal: Configuration =
+      config("native-image-test-internal").hide
 
     lazy val nativeImageReady: TaskKey[() => Unit] = taskKey[() => Unit](
       "This function is called when the native image is ready."
+    )
+    lazy val nativeImageTestReady: TaskKey[() => Unit] = taskKey[() => Unit](
+      "This function is called when the native image of tests is ready."
     )
     lazy val nativeImageVersion: SettingKey[String] = settingKey[String](
       "The version of GraalVM to use by default."
@@ -51,21 +57,43 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageCommand: TaskKey[Seq[String]] = taskKey[Seq[String]](
       "The command arguments to launch the GraalVM native-image binary."
     )
+    lazy val nativeImageTestCommand: TaskKey[Seq[String]] = taskKey[Seq[String]](
+      "The command arguments to launch the GraalVM native-image binary of tests."
+    )
     lazy val nativeImageRunAgent: InputKey[Unit] = inputKey[Unit](
       "Run application, tracking all usages of dynamic features of an execution with `native-image-agent`."
     )
+    lazy val nativeImageTestRunAgent: InputKey[Unit] = inputKey[Unit](
+      "Run tests, tracking all usages of dynamic features of an execution with `native-image-agent`."
+    )
     lazy val nativeImageAgentOutputDir: SettingKey[File] = settingKey[File](
       "Directory where `native-image-agent` should put generated configurations."
+    )
+    lazy val nativeImageTestAgentOutputDir: SettingKey[File] = settingKey[File](
+      "Directory where `native-image-agent` should put generated configurations for tests."
     )
     lazy val nativeImageAgentMerge: SettingKey[Boolean] = settingKey[Boolean](
       "Whether `native-image-agent` should merge generated configurations." +
         s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
     )
+    lazy val nativeImageTestAgentMerge: SettingKey[Boolean] = settingKey[Boolean](
+      "Whether `native-image-agent` should merge generated configurations for tests." +
+        s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
+    )
     lazy val nativeImage: TaskKey[File] = taskKey[File](
       "Generate a native image for this project."
     )
+    lazy val nativeImageTest: TaskKey[File] = taskKey[File](
+      "Generate a native image for tests of this project."
+    )
     lazy val nativeImageRun: InputKey[Unit] = inputKey[Unit](
       "Run the generated native-image binary without linking."
+    )
+    lazy val nativeImageTestRun: InputKey[Unit] = inputKey[Unit](
+      "Run the generated native-image binary for tests without linking."
+    )
+    lazy val nativeImageTestRunOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
+      "Extra command-line arguments that should be forwarded to the tests."
     )
     lazy val nativeImageCopy: InputKey[Unit] = inputKey[Unit](
       "Link the native image and copy the resulting binary to the provided file argument."
@@ -73,7 +101,13 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageOutput: SettingKey[File] = settingKey[File](
       "The binary that is produced by native-image"
     )
+    lazy val nativeImageTestOutput: SettingKey[File] = settingKey[File](
+      "The binary that is produced by tests native-image"
+    )
     lazy val nativeImageOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
+      "Extra command-line arguments that should be forwarded to the native-image optimizer."
+    )
+    lazy val nativeImageTestOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
       "Extra command-line arguments that should be forwarded to the native-image optimizer."
     )
 
@@ -103,8 +137,9 @@ object NativeImagePlugin extends AutoPlugin {
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
     target.in(NativeImage) := target.in(Compile).value / "native-image",
-    target.in(NativeImageInternal) :=
-      target.in(Compile).value / "native-image-internal",
+    target.in(NativeImageTest) := target.in(Test).value / "native-image-test",
+    target.in(NativeImageInternal) := target.in(Compile).value / "native-image-internal",
+    target.in(NativeImageTestInternal) := target.in(Test).value / "native-image-test-internal",
     nativeImageReady := {
       val s = streams.value
 
@@ -112,13 +147,23 @@ object NativeImagePlugin extends AutoPlugin {
         this.alertUser(s, "Native image ready!")
       }
     },
-    mainClass.in(NativeImage) := mainClass.in(Compile).value,
+    nativeImageTestReady := {
+      val s = streams.value
+
+      { () =>
+        this.alertUser(s, "Native image of tests is ready!")
+      }
+    },
     nativeImageJvm := "graalvm-java11",
     nativeImageJvmIndex := "cs",
     nativeImageVersion := "20.2.0",
     name.in(NativeImage) := name.value,
+    name.in(NativeImageTest) := name.in(Test).value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
+    mainClass.in(NativeImageTest) := mainClass.in(Test).value,
     nativeImageOptions := List(),
+    nativeImageTestOptions := nativeImageOptions.value,
+    nativeImageTestRunOptions := List(),
     nativeImageCoursier := {
       val dir = target.in(NativeImageInternal).value
       val out = copyResource("coursier", dir)
@@ -214,8 +259,11 @@ object NativeImagePlugin extends AutoPlugin {
           }
         }
         .value,
+    nativeImageTestCommand := nativeImageCommand.value,
     nativeImageAgentOutputDir := target.value / "native-image-configs",
+    nativeImageTestAgentOutputDir := nativeImageAgentOutputDir.value,
     nativeImageAgentMerge := false,
+    nativeImageTestAgentMerge := nativeImageAgentMerge.value,
     nativeImageRunAgent := {
       val _ = nativeImageCommand.value
       val graalHome = nativeImageGraalHome.value.toFile
@@ -245,8 +293,54 @@ object NativeImagePlugin extends AutoPlugin {
         .extract(newState)
         .runInputTask(run in (tpr, Compile), input, newState)
     },
+    nativeImageTestRunAgent := {
+      val _ = nativeImageTestCommand.value
+      val graalHome = nativeImageGraalHome.value.toFile
+
+      val agentConfig =
+        if (nativeImageTestAgentMerge.value)
+          "config-merge-dir"
+        else
+          "config-output-dir"
+      val agentOption =
+        s"-agentlib:native-image-agent=$agentConfig=${nativeImageTestAgentOutputDir.value}"
+
+      val options = (javaOptions in (Test, run)).value ++ Seq(agentOption)
+
+      val __ = compile.in(Test).value
+      val main = mainClass.in(NativeImageTest).value
+      val cp = fullClasspath.in(Test).value.map(_.data)
+      val manifest = target.in(NativeImageTestInternal).value / "manifest.jar"
+      manifest.getParentFile().mkdirs()
+      createManifestJar(manifest, cp)
+      val nativeClasspath = manifest.absolutePath
+
+      val command = mutable.ListBuffer.empty[String]
+      command += (graalHome / "bin" / "java").absolutePath
+      command ++= options
+      command += "-cp"
+      command += nativeClasspath
+      command +=
+        main.getOrElse(
+          throw new MessageOnlyException(
+            "no mainClass is specified for tests. " +
+              "To fix this problem, update build.sbt to include the settings " +
+              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+          )
+        )
+      command ++= nativeImageTestRunOptions.value
+
+      val projectRoot = baseDirectory.value
+      streams.value.log.info(command.mkString(" "))
+      val exitCode = Process(command, cwd = Some(projectRoot)).!
+      if (exitCode != 0) {
+        throw new Exception(s"Native image build failed:\n ${command}")
+      }
+    },
     nativeImageOutput :=
       target.in(NativeImage).value / name.in(NativeImage).value,
+    nativeImageTestOutput :=
+      target.in(NativeImageTest).value / name.in(NativeImageTest).value,
     nativeImageCopy := {
       val binary = nativeImage.value
       val out = fileParser(baseDirectory.in(ThisBuild).value).parsed
@@ -266,6 +360,18 @@ object NativeImagePlugin extends AutoPlugin {
       }
       val arguments = spaceDelimited("<arg>").parsed.toList
       val exit = Process(binary.absolutePath :: arguments).!
+      if (exit != 0) {
+        throw new MessageOnlyException(s"non-zero exit: $exit")
+      }
+    },
+    nativeImageTestRun := {
+      val binary = nativeImageTestOutput.value
+      if (!binary.isFile()) {
+        throw new MessageOnlyException(
+          s"no such file: $binary.\nTo fix this problem, run 'nativeImageTest' first."
+        )
+      }
+      val exit = Process(binary.absolutePath :: nativeImageTestRunOptions.value.toList).!
       if (exit != 0) {
         throw new MessageOnlyException(s"non-zero exit: $exit")
       }
@@ -314,6 +420,53 @@ object NativeImagePlugin extends AutoPlugin {
       }
 
       nativeImageReady.value.apply()
+      streams.value.log.info(binaryName.absolutePath)
+      binaryName
+    },
+    nativeImageTest := {
+      val _ = compile.in(Test).value
+      val main = mainClass.in(NativeImageTest).value
+      val binaryName = nativeImageTestOutput.value
+      val cp = fullClasspath.in(Test).value.map(_.data)
+      // NOTE(olafur): we pass in a manifest jar instead of the full classpath
+      // for two reasons:
+      // * large classpaths quickly hit on the "argument list too large"
+      //   error, especially on Windows.
+      // * we print the full command to the console and the manifest jar makes
+      //   it more readable and easier to copy-paste.
+      val manifest = target.in(NativeImageTestInternal).value / "manifest.jar"
+      manifest.getParentFile().mkdirs()
+      createManifestJar(manifest, cp)
+      val nativeClasspath = manifest.absolutePath
+
+      // Assemble native-image argument list.
+      val command = mutable.ListBuffer.empty[String]
+      command ++= nativeImageTestCommand.value
+      command ++= nativeImageTestOptions.value
+      command += "-cp"
+      command += nativeClasspath
+      command +=
+        main.getOrElse(
+          throw new MessageOnlyException(
+            "no mainClass is specified for tests. " +
+              "To fix this problem, update build.sbt to include the settings " +
+              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+          )
+        )
+      command += binaryName.absolutePath
+
+      // Start native-image linker.
+      streams.value.log.info(command.mkString(" "))
+      val cwd = target.in(NativeImageTest).value
+      cwd.mkdirs()
+      val exit = Process(command, cwd = Some(cwd)).!
+      if (exit != 0) {
+        throw new MessageOnlyException(
+          s"native-image command failed with exit code '$exit'"
+        )
+      }
+
+      nativeImageTestReady.value.apply()
       streams.value.log.info(binaryName.absolutePath)
       binaryName
     }
