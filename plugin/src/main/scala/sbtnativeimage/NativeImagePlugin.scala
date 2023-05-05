@@ -57,9 +57,10 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageCommand: TaskKey[Seq[String]] = taskKey[Seq[String]](
       "The command arguments to launch the GraalVM native-image binary."
     )
-    lazy val nativeImageTestCommand: TaskKey[Seq[String]] = taskKey[Seq[String]](
-      "The command arguments to launch the GraalVM native-image binary of tests."
-    )
+    lazy val nativeImageTestCommand: TaskKey[Seq[String]] =
+      taskKey[Seq[String]](
+        "The command arguments to launch the GraalVM native-image binary of tests."
+      )
     lazy val nativeImageRunAgent: InputKey[Unit] = inputKey[Unit](
       "Run application, tracking all usages of dynamic features of an execution with `native-image-agent`."
     )
@@ -76,10 +77,11 @@ object NativeImagePlugin extends AutoPlugin {
       "Whether `native-image-agent` should merge generated configurations." +
         s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
     )
-    lazy val nativeImageTestAgentMerge: SettingKey[Boolean] = settingKey[Boolean](
-      "Whether `native-image-agent` should merge generated configurations for tests." +
-        s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
-    )
+    lazy val nativeImageTestAgentMerge: SettingKey[Boolean] =
+      settingKey[Boolean](
+        "Whether `native-image-agent` should merge generated configurations for tests." +
+          s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
+      )
     lazy val nativeImage: TaskKey[File] = taskKey[File](
       "Generate a native image for this project."
     )
@@ -92,9 +94,10 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageTestRun: InputKey[Unit] = inputKey[Unit](
       "Run the generated native-image binary for tests without linking."
     )
-    lazy val nativeImageTestRunOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
-      "Extra command-line arguments that should be forwarded to the tests."
-    )
+    lazy val nativeImageTestRunOptions: TaskKey[Seq[String]] =
+      taskKey[Seq[String]](
+        "Extra command-line arguments that should be forwarded to the tests."
+      )
     lazy val nativeImageCopy: InputKey[Unit] = inputKey[Unit](
       "Link the native image and copy the resulting binary to the provided file argument."
     )
@@ -107,9 +110,10 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
       "Extra command-line arguments that should be forwarded to the native-image optimizer."
     )
-    lazy val nativeImageTestOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
-      "Extra command-line arguments that should be forwarded to the native-image optimizer."
-    )
+    lazy val nativeImageTestOptions: TaskKey[Seq[String]] =
+      taskKey[Seq[String]](
+        "Extra command-line arguments that should be forwarded to the native-image optimizer."
+      )
 
     private lazy val assistedConfigurationOfNativeImageBuildsLink =
       "https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds"
@@ -138,8 +142,10 @@ object NativeImagePlugin extends AutoPlugin {
     libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
     target.in(NativeImage) := target.in(Compile).value / "native-image",
     target.in(NativeImageTest) := target.in(Test).value / "native-image-test",
-    target.in(NativeImageInternal) := target.in(Compile).value / "native-image-internal",
-    target.in(NativeImageTestInternal) := target.in(Test).value / "native-image-test-internal",
+    target.in(NativeImageInternal) :=
+      target.in(Compile).value / "native-image-internal",
+    target.in(NativeImageTestInternal) :=
+      target.in(Test).value / "native-image-test-internal",
     nativeImageReady := {
       val s = streams.value
 
@@ -371,7 +377,8 @@ object NativeImagePlugin extends AutoPlugin {
           s"no such file: $binary.\nTo fix this problem, run 'nativeImageTest' first."
         )
       }
-      val exit = Process(binary.absolutePath :: nativeImageTestRunOptions.value.toList).!
+      val exit =
+        Process(binary.absolutePath :: nativeImageTestRunOptions.value.toList).!
       if (exit != 0) {
         throw new MessageOnlyException(s"non-zero exit: $exit")
       }
