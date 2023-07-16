@@ -12,34 +12,49 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
-        java: [8]
+        os: [macos-latest, ubuntu-latest, windows-latest]
+        java: ['17.0.7', '20.0.1']
+        distribution: ['graalvm', 'graalvm-community']
     steps:
       - uses: actions/checkout@v3
-      - uses: olafurpg/setup-scala@v13
+      - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: "adopt@1.${{ matrix.java }}"
-      - name: Setup Windows C++ toolchain
-        uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ matrix.os == 'windows-latest' }}
+          java-version: ${{ matrix.java }}
+          distribution: ${{ matrix.distribution }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: sbt
+          components: native-image
       - name: sbt test plugin/scripted
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
         shell: bash
+        env:
+          NATIVE_IMAGE_COMMAND: native-image
         run: |
-          export JABBA=/home/runner/bin/jabba
-          $JABBA install graalvm@20.2.0
-          export GRAALVM_HOME=$($JABBA which --home graalvm@20.2.0)
-          $GRAALVM_HOME/bin/gu install native-image
-          export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
+          # Copied from https://github.com/graalvm/setup-graalvm#quickstart-template
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
           sbt test plugin/scripted
       - name: sbt test
         shell: bash
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
+          # Copied from https://github.com/graalvm/setup-graalvm#quickstart-template
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
           sbt example/nativeImage
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: olafurpg/setup-scala@v13
+      - uses: graalvm/setup-graalvm@v1
+        with:
+          java-version: '17.0.7'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          cache: sbt
+          components: native-image
       - run: sbt checkAll

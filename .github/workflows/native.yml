@@ -13,10 +13,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
+        os: [macos-latest, ubuntu-latest, windows-latest]
         include:
           # Replace "example" with the name your binary
-          - os: macOS-latest
+          - os: macos-latest
             uploaded_filename: example-x86_64-apple-darwin
             local_path: example/target/native-image/example
           - os: ubuntu-latest
@@ -31,16 +31,14 @@ jobs:
       JVM_OPTS:  -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
     steps:
       - uses: actions/checkout@v3
-      - name: Setup JDK
-        uses: actions/setup-java@v3
+      - uses: graalvm/setup-graalvm@v1
         with:
-          distribution: temurin
-          java-version: 8
+          java-version: '17.0.7'
+          distribution: 'graalvm'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           cache: sbt
+          components: native-image
       - run: git fetch --tags || true
-      - name: Setup Windows C++ toolchain
-        uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ matrix.os == 'windows-latest' }}
       - name: Build
         shell: bash
         run: |

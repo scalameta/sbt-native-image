@@ -1,18 +1,18 @@
 lazy val example = project
   .settings(
     crossScalaVersions := List(
-      "2.11.10",
+      "2.11.12",
       "2.12.10",
-      "2.12.12",
+      "2.12.18",
       "2.13.1",
-      "2.13.3"
+      "2.13.11"
     ),
-    mainClass.in(Compile) := Some("example.Hello5"),
+    Compile / mainClass := Some("example.Hello5"),
     nativeImageTestOptions ++= Seq(
       "--initialize-at-build-time=scala.collection.immutable.VM"
     ),
-    mainClass.in(Test) := Some("org.scalatest.tools.Runner"),
-    nativeImageTestRunOptions ++= Seq("-o", "-R", classDirectory.in(Test).value.absolutePath),
+    Test / mainClass := Some("org.scalatest.tools.Runner"),
+    nativeImageTestRunOptions ++= Seq("-o", "-R", (Test / classDirectory).value.absolutePath),
     nativeImageCommand := List(
       sys.env.getOrElse(
         "NATIVE_IMAGE_COMMAND",
@@ -21,6 +21,6 @@ lazy val example = project
           "variable to point to the absolute path of this binary."
       )
     ),
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.14" % "test"
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.16" % Test
   )
   .enablePlugins(NativeImagePlugin)
