@@ -19,6 +19,11 @@ jobs:
       - uses: olafurpg/setup-scala@v13
         with:
           java-version: "adopt@1.${{ matrix.java }}"
+      - name: Use CI sbt jvmopts
+        shell: bash
+        run: |
+          mv .jvmopts-ci .jvmopts
+          cat .jvmopts
       - name: Setup Windows C++ toolchain
         uses: ilammy/msvc-dev-cmd@v1
         if: ${{ matrix.os == 'windows-latest' }}
