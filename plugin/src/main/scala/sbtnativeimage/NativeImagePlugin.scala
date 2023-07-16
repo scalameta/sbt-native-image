@@ -520,9 +520,9 @@ object NativeImagePlugin extends AutoPlugin {
         try {
           manifestPath.relativize(dependencyPath).toString
         } catch {
-          //java.lang.IllegalArgumentException: 'other' has different root
-          //this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
-          //copy dependency next to manifest as fallback
+          // java.lang.IllegalArgumentException: 'other' has different root
+          // this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
+          // copy dependency next to manifest as fallback
           case _: IllegalArgumentException =>
             import java.nio.file.{Files, StandardCopyOption}
             Files.copy(
