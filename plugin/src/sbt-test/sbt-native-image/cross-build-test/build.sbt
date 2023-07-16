@@ -1,7 +1,7 @@
 lazy val example = project
   .settings(
     crossScalaVersions := List(
-      "2.11.10",
+      "2.11.12",
       "2.12.10",
       "2.12.18",
       "2.13.1",
