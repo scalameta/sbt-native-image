@@ -1,13 +1,13 @@
 enablePlugins(NativeImagePlugin)
 nativeImageOptions += "--no-fallback"
 crossScalaVersions := List(
-  "2.11.10",
+  "2.11.12",
   "2.12.10",
-  "2.12.12",
+  "2.12.18",
   "2.13.1",
-  "2.13.3"
+  "2.13.11"
 )
-mainClass.in(Compile) := Some("Prog")
+Compile / mainClass := Some("Prog")
 TaskKey[Unit]("check") := {
   val binary = nativeImage.value
   val output = scala.sys.process.Process(List(binary.toString)).!!.trim

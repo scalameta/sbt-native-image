@@ -1,4 +1,7 @@
-def scala212 = "2.12.12"
+def scala212 = "2.12.18"
+
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 inThisBuild(
   List(
     organization := "org.scalameta",
@@ -15,8 +18,6 @@ inThisBuild(
         )
       ),
     scalaVersion := scala212,
-    scalafixDependencies +=
-      "com.github.liancheng" %% "organize-imports" % "0.5.0",
     scalacOptions ++= List("-Ywarn-unused-import"),
     scalafixCaching := true,
     semanticdbEnabled := true
@@ -24,7 +25,7 @@ inThisBuild(
 )
 
 crossScalaVersions := Nil
-skip.in(publish) := true
+publish / skip := true
 
 commands +=
   Command.command("fixAll") { s =>
@@ -42,7 +43,6 @@ lazy val plugin = project
   .settings(
     moduleName := "sbt-native-image",
     sbtPlugin := true,
-    sbtVersion.in(pluginCrossBuild) := "1.0.0",
     crossScalaVersions := List(scala212),
     buildInfoPackage := "sbtnativeimage",
     buildInfoKeys := Seq[BuildInfoKey](version),
@@ -55,8 +55,8 @@ lazy val plugin = project
 lazy val example = project
   .in(file("example"))
   .settings(
-    skip.in(publish) := true,
-    mainClass.in(Compile) := Some("example.Hello"),
+    publish / skip := true,
+    Compile / mainClass := Some("example.Hello"),
     test := {
       val binary = nativeImage.value
       val output = scala.sys.process.Process(List(binary.toString)).!!.trim
