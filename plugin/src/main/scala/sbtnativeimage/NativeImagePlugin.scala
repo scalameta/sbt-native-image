@@ -164,7 +164,7 @@ object NativeImagePlugin extends AutoPlugin {
     },
     nativeImageJvm := "graalvm-java11",
     nativeImageJvmIndex := "cs",
-    nativeImageVersion := "20.2.0",
+    nativeImageVersion := "22.3.0",
     NativeImage / name := name.value,
     NativeImageTest / name :=
       (Test / name).value,

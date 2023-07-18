@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
-        java: [8]
+        java: [11]
     steps:
       - uses: actions/checkout@v3
       - uses: olafurpg/setup-scala@v13
@@ -27,8 +27,8 @@ jobs:
         shell: bash
         run: |
           export JABBA=/home/runner/bin/jabba
-          $JABBA install graalvm@20.2.0
-          export GRAALVM_HOME=$($JABBA which --home graalvm@20.2.0)
+          $JABBA install graalvm@22.3.0
+          export GRAALVM_HOME=$($JABBA which --home graalvm@22.3.0)
           $GRAALVM_HOME/bin/gu install native-image
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt test plugin/scripted
