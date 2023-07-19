@@ -1,6 +1,6 @@
 lazy val example = project
   .settings(
-    scalaVersion := "2.12.18",
+    scalaVersion := "2.13.11",
     Compile / mainClass := Some("example.Hello6"),
     nativeImageTestOptions ++= Seq(
       s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}",

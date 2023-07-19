@@ -1,6 +1,6 @@
 lazy val example = project
   .settings(
-    scalaVersion := "2.12.18",
+    scalaVersion := "2.13.11",
     Compile / mainClass := Some("example.Hello3"),
     nativeImageOptions ++= Seq(
       "--no-fallback",
