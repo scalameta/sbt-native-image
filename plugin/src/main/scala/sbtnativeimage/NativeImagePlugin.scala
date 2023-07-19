@@ -140,12 +140,14 @@ object NativeImagePlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Def.Setting[_]] = List(
     libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
-    target.in(NativeImage) := target.in(Compile).value / "native-image",
-    target.in(NativeImageTest) := target.in(Test).value / "native-image-test",
-    target.in(NativeImageInternal) :=
-      target.in(Compile).value / "native-image-internal",
-    target.in(NativeImageTestInternal) :=
-      target.in(Test).value / "native-image-test-internal",
+    NativeImage / target :=
+      (Compile / target).value / "native-image",
+    NativeImageTest / target :=
+      (Test / target).value / "native-image-test",
+    NativeImageInternal / target :=
+      (Compile / target).value / "native-image-internal",
+    NativeImageTestInternal / target :=
+      (Test / target).value / "native-image-test-internal",
     nativeImageReady := {
       val s = streams.value
 
@@ -162,16 +164,19 @@ object NativeImagePlugin extends AutoPlugin {
     },
     nativeImageJvm := "graalvm-java11",
     nativeImageJvmIndex := "cs",
-    nativeImageVersion := "20.2.0",
-    name.in(NativeImage) := name.value,
-    name.in(NativeImageTest) := name.in(Test).value,
-    mainClass.in(NativeImage) := mainClass.in(Compile).value,
-    mainClass.in(NativeImageTest) := mainClass.in(Test).value,
-    nativeImageOptions := List(),
+    nativeImageVersion := "22.3.0",
+    NativeImage / name := name.value,
+    NativeImageTest / name :=
+      (Test / name).value,
+    NativeImage / mainClass :=
+      (Compile / mainClass).value,
+    NativeImageTest / mainClass :=
+      (Test / mainClass).value,
+    nativeImageOptions := List.empty,
     nativeImageTestOptions := nativeImageOptions.value,
-    nativeImageTestRunOptions := List(),
+    nativeImageTestRunOptions := List.empty,
     nativeImageCoursier := {
-      val dir = target.in(NativeImageInternal).value
+      val dir = (NativeImageInternal / target).value
       val out = copyResource("coursier", dir)
       if (Properties.isWin) {
         copyResource("coursier.bat", dir)
@@ -282,9 +287,9 @@ object NativeImagePlugin extends AutoPlugin {
         s"-agentlib:native-image-agent=$agentConfig=${nativeImageAgentOutputDir.value}"
       val tpr = thisProjectRef.value
       val settings = Seq(
-        fork in (tpr, Compile, run) := true,
-        javaHome in (tpr, Compile, run) := Some(graalHome),
-        javaOptions in (tpr, Compile, run) += agentOption
+        tpr / Compile / run / fork := true,
+        tpr / Compile / run / javaHome := Some(graalHome),
+        tpr / Compile / run / javaOptions += agentOption
       )
       val state0 = state.value
       val extracted = Project.extract(state0)
@@ -297,7 +302,7 @@ object NativeImagePlugin extends AutoPlugin {
           arguments.mkString(" ")
       Project
         .extract(newState)
-        .runInputTask(run in (tpr, Compile), input, newState)
+        .runInputTask(tpr / Compile / run, input, newState)
     },
     nativeImageTestRunAgent := {
       val _ = nativeImageTestCommand.value
@@ -311,12 +316,12 @@ object NativeImagePlugin extends AutoPlugin {
       val agentOption =
         s"-agentlib:native-image-agent=$agentConfig=${nativeImageTestAgentOutputDir.value}"
 
-      val options = (javaOptions in (Test, run)).value ++ Seq(agentOption)
+      val options = (Test / run / javaOptions).value ++ Seq(agentOption)
 
-      val __ = compile.in(Test).value
-      val main = mainClass.in(NativeImageTest).value
-      val cp = fullClasspath.in(Test).value.map(_.data)
-      val manifest = target.in(NativeImageTestInternal).value / "manifest.jar"
+      val __ = (Test / compile).value
+      val main = (NativeImageTest / mainClass).value
+      val cp = (Test / fullClasspath).value.map(_.data)
+      val manifest = (NativeImageTestInternal / target).value / "manifest.jar"
       manifest.getParentFile().mkdirs()
       createManifestJar(manifest, cp)
       val nativeClasspath = manifest.absolutePath
@@ -331,7 +336,7 @@ object NativeImagePlugin extends AutoPlugin {
           throw new MessageOnlyException(
             "no mainClass is specified for tests. " +
               "To fix this problem, update build.sbt to include the settings " +
-              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+              "`Test / mainClass := Some(\"com.MainTestClass\")`"
           )
         )
       command ++= nativeImageTestRunOptions.value
@@ -344,12 +349,12 @@ object NativeImagePlugin extends AutoPlugin {
       }
     },
     nativeImageOutput :=
-      target.in(NativeImage).value / name.in(NativeImage).value,
+      (NativeImage / target).value / (NativeImage / name).value,
     nativeImageTestOutput :=
-      target.in(NativeImageTest).value / name.in(NativeImageTest).value,
+      (NativeImageTest / target).value / (NativeImageTest / name).value,
     nativeImageCopy := {
       val binary = nativeImage.value
-      val out = fileParser(baseDirectory.in(ThisBuild).value).parsed
+      val out = fileParser((ThisBuild / baseDirectory).value).parsed
       Files.copy(
         binary.toPath(),
         out.toPath(),
@@ -384,17 +389,17 @@ object NativeImagePlugin extends AutoPlugin {
       }
     },
     nativeImage := {
-      val _ = compile.in(Compile).value
-      val main = mainClass.in(NativeImage).value
+      val _ = (Compile / compile).value
+      val main = (NativeImage / mainClass).value
       val binaryName = nativeImageOutput.value
-      val cp = fullClasspath.in(Compile).value.map(_.data)
+      val cp = (Compile / fullClasspath).value.map(_.data)
       // NOTE(olafur): we pass in a manifest jar instead of the full classpath
       // for two reasons:
       // * large classpaths quickly hit on the "argument list too large"
       //   error, especially on Windows.
       // * we print the full command to the console and the manifest jar makes
       //   it more readable and easier to copy-paste.
-      val manifest = target.in(NativeImageInternal).value / "manifest.jar"
+      val manifest = (NativeImageInternal / target).value / "manifest.jar"
       manifest.getParentFile().mkdirs()
       createManifestJar(manifest, cp)
       val nativeClasspath = manifest.absolutePath
@@ -410,14 +415,14 @@ object NativeImagePlugin extends AutoPlugin {
           throw new MessageOnlyException(
             "no mainClass is specified. " +
               "To fix this problem, update build.sbt to include the settings " +
-              "`mainClass.in(Compile) := Some(\"com.MainClass\")`"
+              "`Compile / mainClass := Some(\"com.MainClass\")`"
           )
         )
       command += binaryName.absolutePath
 
       // Start native-image linker.
       streams.value.log.info(command.mkString(" "))
-      val cwd = target.in(NativeImage).value
+      val cwd = (NativeImage / target).value
       cwd.mkdirs()
       val exit = Process(command, cwd = Some(cwd)).!
       if (exit != 0) {
@@ -431,17 +436,17 @@ object NativeImagePlugin extends AutoPlugin {
       binaryName
     },
     nativeImageTest := {
-      val _ = compile.in(Test).value
-      val main = mainClass.in(NativeImageTest).value
+      val _ = (Test / compile).value
+      val main = (NativeImageTest / mainClass).value
       val binaryName = nativeImageTestOutput.value
-      val cp = fullClasspath.in(Test).value.map(_.data)
+      val cp = (Test / fullClasspath).value.map(_.data)
       // NOTE(olafur): we pass in a manifest jar instead of the full classpath
       // for two reasons:
       // * large classpaths quickly hit on the "argument list too large"
       //   error, especially on Windows.
       // * we print the full command to the console and the manifest jar makes
       //   it more readable and easier to copy-paste.
-      val manifest = target.in(NativeImageTestInternal).value / "manifest.jar"
+      val manifest = (NativeImageTestInternal / target).value / "manifest.jar"
       manifest.getParentFile().mkdirs()
       createManifestJar(manifest, cp)
       val nativeClasspath = manifest.absolutePath
@@ -457,14 +462,14 @@ object NativeImagePlugin extends AutoPlugin {
           throw new MessageOnlyException(
             "no mainClass is specified for tests. " +
               "To fix this problem, update build.sbt to include the settings " +
-              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+              "`Test / mainClass := Some(\"com.MainTestClass\")`"
           )
         )
       command += binaryName.absolutePath
 
       // Start native-image linker.
       streams.value.log.info(command.mkString(" "))
-      val cwd = target.in(NativeImageTest).value
+      val cwd = (NativeImageTest / target).value
       cwd.mkdirs()
       val exit = Process(command, cwd = Some(cwd)).!
       if (exit != 0) {
@@ -519,8 +524,7 @@ object NativeImagePlugin extends AutoPlugin {
           //this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
           //copy dependency next to manifest as fallback
           case _: IllegalArgumentException =>
-            import java.nio.file.Files
-            import java.nio.file.StandardCopyOption
+            import java.nio.file.{Files, StandardCopyOption}
             Files.copy(
               dependencyPath,
               manifestPath.resolve(path.getName),
@@ -546,15 +550,15 @@ object NativeImagePlugin extends AutoPlugin {
 
   private def alertUser(streams: std.TaskStreams[_], message: String): Unit = {
     streams.log.info(message)
-    if (isCI)
-      return
-    try {
-      if (Properties.isMac) {
-        Process(List("say", message)).!
+    if (!isCI) {
+      try {
+        if (Properties.isMac) {
+          Process(List("say", message)).!
+        }
+        // NOTE(olafur): feel free to add support for Linux/Windows.
+      } catch {
+        case NonFatal(_) =>
       }
-      // NOTE(olafur): feel free to add support for Linux/Windows.
-    } catch {
-      case NonFatal(_) =>
     }
   }
 }

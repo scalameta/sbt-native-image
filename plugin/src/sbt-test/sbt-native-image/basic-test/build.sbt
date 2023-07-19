@@ -1,7 +1,7 @@
 lazy val example = project
   .settings(
-    scalaVersion := "2.12.12",
-    mainClass.in(Compile) := Some("example.Hello4"),
+    scalaVersion := "2.13.11",
+    Compile / mainClass := Some("example.Hello4"),
     nativeImageCommand := List(
       sys.env.getOrElse(
         "NATIVE_IMAGE_COMMAND",
@@ -13,8 +13,8 @@ lazy val example = project
     nativeImageTestOptions ++= Seq(
       "--initialize-at-build-time=scala.collection.immutable.VM"
     ),
-    mainClass.in(Test) := Some("org.scalatest.tools.Runner"),
-    nativeImageTestRunOptions ++= Seq("-o", "-R", classDirectory.in(Test).value.absolutePath),
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.14" % "test"
+    Test / mainClass := Some("org.scalatest.tools.Runner"),
+    nativeImageTestRunOptions ++= Seq("-o", "-R", (Test / classDirectory).value.absolutePath),
+    libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.16" % Test
   )
   .enablePlugins(NativeImagePlugin)

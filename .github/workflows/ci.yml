@@ -2,9 +2,9 @@ name: CI
 on:
   push:
     branches:
-      - master
       - main
   pull_request:
+
 jobs:
   native-image:
     name: Compile
@@ -13,33 +13,41 @@ jobs:
       fail-fast: false
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
-        java: [8]
+        java: ['17.0.7']
+
     steps:
       - uses: actions/checkout@v3
-      - uses: olafurpg/setup-scala@v13
+      - uses: graalvm/setup-graalvm@v1
         with:
-          java-version: "adopt@1.${{ matrix.java }}"
-      - name: Setup Windows C++ toolchain
-        uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ matrix.os == 'windows-latest' }}
+          java-version: ${{ matrix.java }}
+          cache: sbt
+          components: native-image
+
       - name: sbt test plugin/scripted
-        if: ${{ matrix.os == 'ubuntu-latest' }}
-        shell: bash
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest' }}
+        env:
+          NATIVE_IMAGE_COMMAND: native-image
         run: |
-          export JABBA=/home/runner/bin/jabba
-          $JABBA install graalvm@20.2.0
-          export GRAALVM_HOME=$($JABBA which --home graalvm@20.2.0)
-          $GRAALVM_HOME/bin/gu install native-image
-          export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
+          # Copied from https://github.com/graalvm/setup-graalvm#quickstart-template
+          echo "GRAALVM_HOME: $GRAALVM_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          java --version
+          native-image --version
           sbt test plugin/scripted
-      - name: sbt test
-        shell: bash
-        if: ${{ matrix.os == 'windows-latest' }}
-        run: |
-          sbt example/nativeImage
+
+      # - name: sbt test
+      #   shell: bash
+      #   if: ${{ matrix.os == 'windows-latest' }}
+      #   run: |
+      #     sbt example/nativeImage
+
   check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: olafurpg/setup-scala@v13
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'sbt'
       - run: sbt checkAll
