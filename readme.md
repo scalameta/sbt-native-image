@@ -151,7 +151,7 @@ CI to generate the binary in a specific place.
 
 **Description**: the GraalVM version to use.
 
-**Default**: 20.2.0
+**Default**: 22.3.1
 
 **Example usage**: `nativeImageVersion := "19.3.3"`
 
@@ -167,7 +167,7 @@ CI to generate the binary in a specific place.
 
 |nativeImageJvm|nativeImageVersion|nativeImageJvmIndex|source|
 |---|---|---|---|
-|graalvm, graalvm-java11, graalvm-java17|1.0.0-x,19.0.0~21.1.0|cs|https://github.com/coursier/jvm-index|
+|graalvm, graalvm-java11, graalvm-java17, graalvm-jav21|1.0.0-x,19.0.0~22.3.3|cs|https://github.com/coursier/jvm-index|
 |graalvm-ce-java8, graalvm-ce-java11, graalvm-ce-java16|19.3~21.1.0|jabba|https://raw.githubusercontent.com/shyiko/jabba/master/index.json|
 
 ### `nativeImageJvmIndex`
