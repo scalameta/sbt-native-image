@@ -267,8 +267,8 @@ First, add the reflection configuration to the native image options
 
 lazy val myNativeProject = project
   .settings(
-+     nativeImageOptions += s"-H:ReflectionConfigurationFiles=${target.value / "native-image-configs" / "reflect-config.json"}",
-+     nativeImageOptions += s"-H:ConfigurationFileDirectories=${target.value / "native-image-configs" }",
++     nativeImageOptions += s"-H:ReflectionConfigurationFiles=${nativeImageAgentOutputDir.value / "reflect-config.json"}",
++     nativeImageOptions += s"-H:ConfigurationFileDirectories=${nativeImageAgentOutputDir.value }",
 +     nativeImageOptions +="-H:+JNI"
   )
   .enablePlugins(NativeImagePlugin)
@@ -295,7 +295,7 @@ $ sbt
 **Description**: directory where `native-image-agent` should put generated
 configurations.
 
-**Default**: `baseDirectory.value / "native-image-configs"`
+**Default**: `target.value / "native-image-configs"`
 
 **Example usage**:
 `nativeImageAgentOutputDir := baseDirectory.value / "native-image-agent" / "out"`
