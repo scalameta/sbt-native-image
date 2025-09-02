@@ -1,4 +1,4 @@
-def scala212 = "2.12.12"
+def scala212 = "2.12.20"
 inThisBuild(
   List(
     organization := "org.scalameta",
@@ -19,7 +19,8 @@ inThisBuild(
       "com.github.liancheng" %% "organize-imports" % "0.5.0",
     scalacOptions ++= List("-Ywarn-unused-import"),
     scalafixCaching := true,
-    semanticdbEnabled := true
+    semanticdbEnabled := true,
+    semanticdbVersion := "4.13.9"
   )
 )
 
@@ -42,7 +43,14 @@ lazy val plugin = project
   .settings(
     moduleName := "sbt-native-image",
     sbtPlugin := true,
-    sbtVersion.in(pluginCrossBuild) := "1.0.0",
+    (pluginCrossBuild / sbtVersion) := {
+      scalaBinaryVersion.value match {
+        case "2.12" =>
+          "1.5.8"
+        case _ =>
+          "2.0.0-RC4"
+      }
+    },
     crossScalaVersions := List(scala212),
     buildInfoPackage := "sbtnativeimage",
     buildInfoKeys := Seq[BuildInfoKey](version),
