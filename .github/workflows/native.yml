@@ -13,16 +13,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macOS-latest, ubuntu-latest, windows-latest]
+        os: [macos-13, ubuntu-latest, windows-2022]
         include:
           # Replace "example" with the name your binary
-          - os: macOS-latest
+          - os: macos-13
             uploaded_filename: example-x86_64-apple-darwin
             local_path: example/target/native-image/example
           - os: ubuntu-latest
             uploaded_filename: example-x86_64-pc-linux
             local_path: example/target/native-image/example
-          - os: windows-latest
+          - os: windows-2022
             uploaded_filename: example-x86_64-pc-win32.exe
             local_path: example\target\native-image\example.exe
     env:
