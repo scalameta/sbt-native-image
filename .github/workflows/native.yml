@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-latest, windows-2022]
+        os: [macos-13, ubuntu-latest]
         include:
           # Replace "example" with the name your binary
           - os: macos-13
@@ -22,9 +22,11 @@ jobs:
           - os: ubuntu-latest
             uploaded_filename: example-x86_64-pc-linux
             local_path: example/target/native-image/example
-          - os: windows-2022
-            uploaded_filename: example-x86_64-pc-win32.exe
-            local_path: example\target\native-image\example.exe
+
+          # TODO: Fix Windows support
+          # - os: windows-2022
+          #   uploaded_filename: example-x86_64-pc-win32.exe
+          #   local_path: example\target\native-image\example.exe
     env:
       # define Java options for both official sbt and sbt-extras
       JAVA_OPTS: -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
