@@ -160,9 +160,9 @@ object NativeImagePlugin extends AutoPlugin {
         this.alertUser(s, "Native image of tests is ready!")
       }
     },
-    nativeImageJvm := "graalvm-java11",
+    nativeImageJvm := "graalvm-java17",
     nativeImageJvmIndex := "cs",
-    nativeImageVersion := "20.2.0",
+    nativeImageVersion := "22.3.1",
     name.in(NativeImage) := name.value,
     name.in(NativeImageTest) := name.in(Test).value,
     mainClass.in(NativeImage) := mainClass.in(Compile).value,
