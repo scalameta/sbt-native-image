@@ -16,7 +16,7 @@ jobs:
         os: [ubuntu-latest]
         java: [8]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: olafurpg/setup-scala@v13
       - uses: sbt/setup-sbt@v1
       - name: Setup Windows C++ toolchain
@@ -34,7 +34,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
         with:
           distribution: "zulu"
