@@ -13,10 +13,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-13, ubuntu-latest]
+        os: [macos-14, macos-15-intel, ubuntu-latest]
         include:
           # Replace "example" with the name your binary
-          - os: macos-13
+          - os: macos-14
+            uploaded_filename: example-aarch64-apple-darwin
+            local_path: example/target/native-image/example
+          - os: macos-15-intel
             uploaded_filename: example-x86_64-apple-darwin
             local_path: example/target/native-image/example
           - os: ubuntu-latest
