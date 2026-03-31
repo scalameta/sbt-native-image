@@ -59,6 +59,14 @@ lazy val plugin = project
           "2.0.0-RC8"
       }
     },
+    scriptedSbt := {
+      scalaBinaryVersion.value match {
+        case "2.12" =>
+          "1.10.6"
+        case _ =>
+          (pluginCrossBuild / sbtVersion).value
+      }
+    },
     crossScalaVersions := List(scala212),
     buildInfoPackage := "sbtnativeimage",
     buildInfoKeys := Seq[BuildInfoKey](version),

@@ -1,11 +1,8 @@
 lazy val example = project
   .settings(
     crossScalaVersions := List(
-      "2.11.10",
-      "2.12.10",
-      "2.12.12",
-      "2.13.1",
-      "2.13.3"
+      "2.12.21",
+      "2.13.18",
     ),
     Compile / mainClass := Some("example.Hello5"),
     nativeImageTestOptions ++= Seq(

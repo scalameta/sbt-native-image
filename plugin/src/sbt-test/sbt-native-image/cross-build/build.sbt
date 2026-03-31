@@ -1,11 +1,8 @@
 enablePlugins(NativeImagePlugin)
 nativeImageOptions += "--no-fallback"
 crossScalaVersions := List(
-  "2.11.10",
-  "2.12.10",
-  "2.12.12",
-  "2.13.1",
-  "2.13.3"
+  "2.12.21",
+  "2.13.18",
 )
 Compile / mainClass := Some("Prog")
 TaskKey[Unit]("check") := {

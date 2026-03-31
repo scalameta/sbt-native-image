@@ -14,10 +14,19 @@ jobs:
       matrix:
         # TODO: Fix Windows and macOS support
         os: [ubuntu-latest]
-        java: [8]
+        java: [17]
     steps:
       - uses: actions/checkout@v6
-      - uses: olafurpg/setup-scala@v13
+      - name: Setup JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 17
+          cache: sbt
+      - uses: actions/setup-java@v5
+        with:
+          distribution: graalvm
+          java-version: 21
       - uses: sbt/setup-sbt@v1
       - name: Setup Windows C++ toolchain
         uses: ilammy/msvc-dev-cmd@v1
@@ -25,10 +34,7 @@ jobs:
       - name: sbt test plugin/scripted
         shell: bash
         run: |
-          export JABBA=/home/runner/bin/jabba
-          $JABBA install graalvm@20.2.0
-          export GRAALVM_HOME=$($JABBA which --home graalvm@20.2.0)
-          $GRAALVM_HOME/bin/gu install native-image
+          export GRAALVM_HOME=$JAVA_HOME_21_X64
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt test plugin/scripted
   check:
