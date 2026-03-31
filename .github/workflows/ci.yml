@@ -15,6 +15,7 @@ jobs:
         # TODO: Fix Windows and macOS support
         os: [ubuntu-latest]
         java: [17]
+        jobtype: [1, 2]
     steps:
       - uses: actions/checkout@v6
       - name: Setup JDK
@@ -31,12 +32,20 @@ jobs:
       - name: Setup Windows C++ toolchain
         uses: ilammy/msvc-dev-cmd@v1
         if: ${{ matrix.os == 'windows-2022' }}
-      - name: sbt test plugin/scripted
+      - name: sbt test plugin/scripted (1)
+        if: ${{ matrix.jobtype == 1 }}
         shell: bash
         run: |
           export GRAALVM_HOME=$JAVA_HOME_21_X64
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
-          sbt test plugin/scripted
+          sbt ++2.12.x test plugin/scripted
+      - name: sbt test plugin/scripted (2)
+        if: ${{ matrix.jobtype == 2 }}
+        shell: bash
+        run: |
+          export GRAALVM_HOME=$JAVA_HOME_21_X64
+          export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
+          sbt ++3.x test plugin/scripted
   check:
     runs-on: ubuntu-latest
     steps:
@@ -44,7 +53,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: "zulu"
-          java-version: "8"
+          java-version: "17"
           cache: "sbt"
       - uses: sbt/setup-sbt@v1
       - run: sbt checkAll

@@ -2,9 +2,9 @@ package sbtnativeimage
 
 import java.io.File
 import java.nio.file.Files
-import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import java.nio.file.{Path => NioPath}
 import java.util.jar.Attributes
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
@@ -15,10 +15,17 @@ import scala.sys.process.Process
 import scala.util.Properties
 import scala.util.control.NonFatal
 
-import sbt.Keys._
-import sbt._
-import sbt.complete.DefaultParsers._
+import sbt.*
+import sbt.Keys.*
+import sbt.complete.DefaultParsers.*
 import sbt.plugins.JvmPlugin
+import sbtcompat.PluginCompat.*
+import xsbti.FileConverter
+import Compat.*
+
+// scalafix:off
+import sbt.CacheImplicits.{*, given}
+// scalafix:on
 
 object NativeImagePlugin extends AutoPlugin {
   override def requires = JvmPlugin
@@ -31,9 +38,11 @@ object NativeImagePlugin extends AutoPlugin {
     val NativeImageTestInternal: Configuration =
       config("native-image-test-internal").hide
 
+    @transient
     lazy val nativeImageReady: TaskKey[() => Unit] = taskKey[() => Unit](
       "This function is called when the native image is ready."
     )
+    @transient
     lazy val nativeImageTestReady: TaskKey[() => Unit] = taskKey[() => Unit](
       "This function is called when the native image of tests is ready."
     )
@@ -46,13 +55,14 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageJvmIndex: SettingKey[String] = settingKey[String](
       "The JVM version index to use, one of: cs (default) | jabba"
     )
+    @transient
     lazy val nativeImageCoursier: TaskKey[File] = taskKey[File](
       "Path to a coursier binary that is used to launch GraalVM native-image."
     )
     lazy val nativeImageInstalled: SettingKey[Boolean] = settingKey[Boolean](
       "Whether GraalVM is manually installed or should be downloaded with coursier."
     )
-    lazy val nativeImageGraalHome: TaskKey[Path] = taskKey[Path](
+    lazy val nativeImageGraalHome: TaskKey[NioPath] = taskKey[NioPath](
       "Path to GraalVM home directory."
     )
     lazy val nativeImageCommand: TaskKey[Seq[String]] = taskKey[Seq[String]](
@@ -83,10 +93,10 @@ object NativeImagePlugin extends AutoPlugin {
         "Whether `native-image-agent` should merge generated configurations for tests." +
           s" (See $assistedConfigurationOfNativeImageBuildsLink for details)"
       )
-    lazy val nativeImage: TaskKey[File] = taskKey[File](
+    lazy val nativeImage: TaskKey[FileRef] = taskKey[FileRef](
       "Generate a native image for this project."
     )
-    lazy val nativeImageTest: TaskKey[File] = taskKey[File](
+    lazy val nativeImageTest: TaskKey[FileRef] = taskKey[FileRef](
       "Generate a native image for tests of this project."
     )
     lazy val nativeImageRun: InputKey[Unit] = inputKey[Unit](
@@ -102,12 +112,12 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageCopy: InputKey[Unit] = inputKey[Unit](
       "Link the native image and copy the resulting binary to the provided file argument."
     )
-    lazy val nativeImageOutput: SettingKey[File] = settingKey[File](
-      "The binary that is produced by native-image"
-    )
-    lazy val nativeImageTestOutput: SettingKey[File] = settingKey[File](
-      "The binary that is produced by tests native-image"
-    )
+    lazy val nativeImageOutput: SettingKey[ArtifactPath] =
+      settingKey[ArtifactPath]("The binary that is produced by native-image")
+    lazy val nativeImageTestOutput: SettingKey[ArtifactPath] =
+      settingKey[ArtifactPath](
+        "The binary that is produced by tests native-image"
+      )
     lazy val nativeImageOptions: TaskKey[Seq[String]] = taskKey[Seq[String]](
       "Extra command-line arguments that should be forwarded to the native-image optimizer."
     )
@@ -318,6 +328,8 @@ object NativeImagePlugin extends AutoPlugin {
         s"-agentlib:native-image-agent=$agentConfig=${nativeImageTestAgentOutputDir.value}"
 
       val options = (Test / run / javaOptions).value ++ Seq(agentOption)
+      val conv0 = fileConverter.value
+      implicit val conv: FileConverter = conv0
 
       @nowarn
       val a = (Test / compile).value
@@ -350,22 +362,35 @@ object NativeImagePlugin extends AutoPlugin {
         throw new Exception(s"Native image build failed:\n ${command}")
       }
     },
-    nativeImageOutput :=
-      (NativeImage / target).value / (NativeImage / name).value,
-    nativeImageTestOutput :=
-      (NativeImageTest / target).value / (NativeImageTest / name).value,
+    nativeImageOutput := {
+      val conv0 = fileConverter.value
+      implicit val conv: FileConverter = conv0
+      val out = (NativeImage / target).value / (NativeImage / name).value
+      toArtifactPath(out)
+    },
+    nativeImageTestOutput := {
+      val conv0 = fileConverter.value
+      implicit val conv: FileConverter = conv0
+      val out = (NativeImageTest / target).value /
+        (NativeImageTest / name).value
+      toArtifactPath(out)
+    },
     nativeImageCopy := {
+      val conv0 = fileConverter.value
+      implicit val conv: FileConverter = conv0
       val binary = nativeImage.value
       val out = fileParser((ThisBuild / baseDirectory).value).parsed
       Files.copy(
-        binary.toPath(),
+        toNioPath(binary),
         out.toPath(),
         StandardCopyOption.REPLACE_EXISTING
       )
       println(out.absolutePath)
     },
     nativeImageRun := {
-      val binary = nativeImageOutput.value
+      val conv0 = fileConverter.value
+      implicit val conv: FileConverter = conv0
+      val binary = virtualFileRefToFile(nativeImageOutput.value)
       if (!binary.isFile()) {
         throw new MessageOnlyException(
           s"no such file: $binary.\nTo fix this problem, run 'nativeImage' first."
@@ -378,7 +403,9 @@ object NativeImagePlugin extends AutoPlugin {
       }
     },
     nativeImageTestRun := {
-      val binary = nativeImageTestOutput.value
+      val conv0 = fileConverter.value
+      implicit val conv: FileConverter = conv0
+      val binary = virtualFileRefToFile(nativeImageTestOutput.value)
       if (!binary.isFile()) {
         throw new MessageOnlyException(
           s"no such file: $binary.\nTo fix this problem, run 'nativeImageTest' first."
@@ -390,107 +417,125 @@ object NativeImagePlugin extends AutoPlugin {
         throw new MessageOnlyException(s"non-zero exit: $exit")
       }
     },
-    nativeImage := {
-      val _ = (Compile / compile).value
-      val main = (NativeImage / mainClass).value
-      val binaryName = nativeImageOutput.value
-      val cp = (Compile / fullClasspath).value.map(_.data)
-      // NOTE(olafur): we pass in a manifest jar instead of the full classpath
-      // for two reasons:
-      // * large classpaths quickly hit on the "argument list too large"
-      //   error, especially on Windows.
-      // * we print the full command to the console and the manifest jar makes
-      //   it more readable and easier to copy-paste.
-      val manifest = (NativeImageInternal / target).value / "manifest.jar"
-      manifest.getParentFile().mkdirs()
-      createManifestJar(manifest, cp)
-      val nativeClasspath = manifest.absolutePath
-
-      // Assemble native-image argument list.
-      val command = mutable.ListBuffer.empty[String]
-      command ++= nativeImageCommand.value
-      command += "-cp"
-      command += nativeClasspath
-      command ++= nativeImageOptions.value
-      command +=
-        main.getOrElse(
-          throw new MessageOnlyException(
-            "no mainClass is specified. " +
-              "To fix this problem, update build.sbt to include the settings " +
-              "`mainClass.in(Compile) := Some(\"com.MainClass\")`"
+    nativeImage :=
+      Def.uncached {
+        val _ =
+          (
+            (Compile / products).value,
+            (Compile / compile / compileInputs2).value
           )
-        )
-      command += binaryName.absolutePath
+        val main = (NativeImage / mainClass).value
+        val binaryName: ArtifactPath = nativeImageOutput.value
+        val cp = (Compile / fullClasspath).value.map(_.data)
+        val conv0 = fileConverter.value
+        implicit val conv: FileConverter = conv0
 
-      // Start native-image linker.
-      streams.value.log.info(command.mkString(" "))
-      val cwd = (NativeImage / target).value
-      cwd.mkdirs()
-      val exit = Process(command, cwd = Some(cwd)).!
-      if (exit != 0) {
-        throw new MessageOnlyException(
-          s"native-image command failed with exit code '$exit'"
-        )
-      }
+        // NOTE(olafur): we pass in a manifest jar instead of the full classpath
+        // for two reasons:
+        // * large classpaths quickly hit on the "argument list too large"
+        //   error, especially on Windows.
+        // * we print the full command to the console and the manifest jar makes
+        //   it more readable and easier to copy-paste.
+        val manifest = (NativeImageInternal / target).value / "manifest.jar"
+        manifest.getParentFile().mkdirs()
+        createManifestJar(manifest, cp)
+        val nativeClasspath = manifest.absolutePath
 
-      nativeImageReady.value.apply()
-      streams.value.log.info(binaryName.absolutePath)
-      binaryName
-    },
-    nativeImageTest := {
-      val _ = (Test / compile).value
-      val main = (NativeImageTest / mainClass).value
-      val binaryName = nativeImageTestOutput.value
-      val cp = (Test / fullClasspath).value.map(_.data)
-      // NOTE(olafur): we pass in a manifest jar instead of the full classpath
-      // for two reasons:
-      // * large classpaths quickly hit on the "argument list too large"
-      //   error, especially on Windows.
-      // * we print the full command to the console and the manifest jar makes
-      //   it more readable and easier to copy-paste.
-      val manifest = (NativeImageTestInternal / target).value / "manifest.jar"
-      manifest.getParentFile().mkdirs()
-      createManifestJar(manifest, cp)
-      val nativeClasspath = manifest.absolutePath
-
-      // Assemble native-image argument list.
-      val command = mutable.ListBuffer.empty[String]
-      command ++= nativeImageTestCommand.value
-      command ++= nativeImageTestOptions.value
-      command += "-cp"
-      command += nativeClasspath
-      command +=
-        main.getOrElse(
-          throw new MessageOnlyException(
-            "no mainClass is specified for tests. " +
-              "To fix this problem, update build.sbt to include the settings " +
-              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+        // Assemble native-image argument list.
+        val command = mutable.ListBuffer.empty[String]
+        command ++= nativeImageCommand.value
+        command += "-cp"
+        command += nativeClasspath
+        command ++= nativeImageOptions.value
+        command +=
+          main.getOrElse(
+            throw new MessageOnlyException(
+              "no mainClass is specified. " +
+                "To fix this problem, update build.sbt to include the settings " +
+                "`mainClass.in(Compile) := Some(\"com.MainClass\")`"
+            )
           )
-        )
-      command += binaryName.absolutePath
+        command += artifactPathToFile(binaryName).absolutePath
 
-      // Start native-image linker.
-      streams.value.log.info(command.mkString(" "))
-      val cwd = (NativeImageTest / target).value
-      cwd.mkdirs()
-      val exit = Process(command, cwd = Some(cwd)).!
-      if (exit != 0) {
-        throw new MessageOnlyException(
-          s"native-image command failed with exit code '$exit'"
-        )
+        // Start native-image linker.
+        streams.value.log.info(command.mkString(" "))
+        val cwd = (NativeImage / target).value
+        cwd.mkdirs()
+        val exit = Process(command, cwd = Some(cwd)).!
+        if (exit != 0) {
+          throw new MessageOnlyException(
+            s"native-image command failed with exit code '$exit'"
+          )
+        }
+
+        nativeImageReady.value.apply()
+        val out: File = artifactPathToFile(binaryName)
+        streams.value.log.info(out.absolutePath)
+        toFileRef(out)
+      },
+    nativeImageTest :=
+      Def.uncached {
+        val _ =
+          ((Test / products).value, (Test / compile / compileInputs2).value)
+        val main = (NativeImageTest / mainClass).value
+        val binaryName: ArtifactPath = nativeImageTestOutput.value
+        val cp = (Test / fullClasspath).value.map(_.data)
+        val conv0 = fileConverter.value
+        implicit val conv: FileConverter = conv0
+
+        // NOTE(olafur): we pass in a manifest jar instead of the full classpath
+        // for two reasons:
+        // * large classpaths quickly hit on the "argument list too large"
+        //   error, especially on Windows.
+        // * we print the full command to the console and the manifest jar makes
+        //   it more readable and easier to copy-paste.
+        val manifest = (NativeImageTestInternal / target).value / "manifest.jar"
+        manifest.getParentFile().mkdirs()
+        createManifestJar(manifest, cp)
+        val nativeClasspath = manifest.absolutePath
+
+        // Assemble native-image argument list.
+        val command = mutable.ListBuffer.empty[String]
+        command ++= nativeImageTestCommand.value
+        command ++= nativeImageTestOptions.value
+        command += "-cp"
+        command += nativeClasspath
+        command +=
+          main.getOrElse(
+            throw new MessageOnlyException(
+              "no mainClass is specified for tests. " +
+                "To fix this problem, update build.sbt to include the settings " +
+                "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+            )
+          )
+        command += artifactPathToFile(binaryName).absolutePath
+
+        // Start native-image linker.
+        streams.value.log.info(command.mkString(" "))
+        val cwd = (NativeImageTest / target).value
+        cwd.mkdirs()
+        val exit = Process(command, cwd = Some(cwd)).!
+        if (exit != 0) {
+          throw new MessageOnlyException(
+            s"native-image command failed with exit code '$exit'"
+          )
+        }
+
+        nativeImageTestReady.value.apply()
+        val out: File = artifactPathToFile(binaryName)
+        streams.value.log.info(out.absolutePath)
+        toFileRef(out)
       }
-
-      nativeImageTestReady.value.apply()
-      streams.value.log.info(binaryName.absolutePath)
-      binaryName
-    }
   )
 
   private def isCI = "true".equalsIgnoreCase(System.getenv("CI"))
 
-  private def createManifestJar(manifestJar: File, cp: Seq[File]): Unit = {
+  private def createManifestJar(manifestJar: File, cp: Seq[FileRef])(implicit
+      conv: FileConverter
+  ): Unit = {
     // Add trailing slash to directories so that manifest dir entries work
     val classpathStr = cp
+      .map(toNioPath)
       .map(addTrailingSlashToDirectories(manifestJar))
       .mkString(" ")
     val manifest = new Manifest()
@@ -512,15 +557,14 @@ object NativeImagePlugin extends AutoPlugin {
 
   private def addTrailingSlashToDirectories(
       manifestJar: File
-  )(path: File): String = {
+  )(path: NioPath): String = {
     val syntax =
       if (Properties.isWin) {
         // NOTE(danirey): absolute paths are not supported by all JDKs on Windows, therefore using relative paths
         // relative paths may not be URL-encoded, otherwise an absolute path is constructed
         val manifestPath = Paths.get(manifestJar.getParent)
-        val dependencyPath = Paths.get(path.getPath)
         try {
-          manifestPath.relativize(dependencyPath).toString
+          manifestPath.relativize(path).toString
         } catch {
           //java.lang.IllegalArgumentException: 'other' has different root
           //this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
@@ -529,16 +573,16 @@ object NativeImagePlugin extends AutoPlugin {
             import java.nio.file.Files
             import java.nio.file.StandardCopyOption
             Files.copy(
-              dependencyPath,
-              manifestPath.resolve(path.getName),
+              path,
+              manifestPath.resolve(path.getFileName().toString),
               StandardCopyOption.REPLACE_EXISTING
             )
-            path.getName
+            path.getFileName().toString
         }
       } else {
         // NOTE(olafur): manifest jars must use URL-encoded paths.
         // https://docs.oracle.com/javase/7/docs/technotes/guides/jar/jar.html
-        path.toURI.toURL.getPath
+        path.toUri.toURL.getPath
       }
 
     val separatorAdded = {
