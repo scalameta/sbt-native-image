@@ -7,7 +7,7 @@ crossScalaVersions := List(
   "2.13.1",
   "2.13.3"
 )
-mainClass.in(Compile) := Some("Prog")
+Compile / mainClass := Some("Prog")
 TaskKey[Unit]("check") := {
   val binary = nativeImage.value
   val output = scala.sys.process.Process(List(binary.toString)).!!.trim
