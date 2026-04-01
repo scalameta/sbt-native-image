@@ -149,16 +149,11 @@ object NativeImagePlugin extends AutoPlugin {
     out.toFile
   }
 
-  override lazy val projectSettings: Seq[Def.Setting[?]] = List(
-    libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
-    NativeImage / target :=
-      (Compile / target).value / "native-image",
-    NativeImageTest / target :=
-      (Test / target).value / "native-image-test",
-    NativeImageInternal / target :=
-      (Compile / target).value / "native-image-internal",
-    NativeImageTestInternal / target :=
-      (Test / target).value / "native-image-test-internal",
+  override lazy val globalSettings: Seq[Def.Setting[?]] = List(
+    nativeImageJvm := "graalvm-java17",
+    nativeImageJvmIndex := "cs",
+    nativeImageVersion := "22.3.1",
+    nativeImageAgentMerge := false,
     nativeImageReady := {
       val s = streams.value
 
@@ -173,9 +168,32 @@ object NativeImagePlugin extends AutoPlugin {
         this.alertUser(s, "Native image of tests is ready!")
       }
     },
-    nativeImageJvm := "graalvm-java17",
-    nativeImageJvmIndex := "cs",
-    nativeImageVersion := "22.3.1",
+    nativeImageInstalled :=
+      Def
+        .settingDyn {
+          val installed =
+            "true"
+              .equalsIgnoreCase(System.getProperty("native-image-installed")) ||
+              "true"
+                .equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED")) ||
+              "true"
+                .equalsIgnoreCase(System.getProperty("graalvm-installed")) ||
+              "true".equalsIgnoreCase(System.getenv("GRAALVM_INSTALLED"))
+          Def.setting(installed)
+        }
+        .value
+  )
+
+  override lazy val projectSettings: Seq[Def.Setting[?]] = List(
+    libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
+    NativeImage / target :=
+      (Compile / target).value / "native-image",
+    NativeImageTest / target :=
+      (Test / target).value / "native-image-test",
+    NativeImageInternal / target :=
+      (Compile / target).value / "native-image-internal",
+    NativeImageTestInternal / target :=
+      (Test / target).value / "native-image-test-internal",
     NativeImage / name := name.value,
     NativeImageTest / name :=
       (Test / name).value,
@@ -195,20 +213,6 @@ object NativeImagePlugin extends AutoPlugin {
         out
       }
     },
-    nativeImageInstalled :=
-      Def
-        .settingDyn {
-          val installed =
-            "true"
-              .equalsIgnoreCase(System.getProperty("native-image-installed")) ||
-              "true"
-                .equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED")) ||
-              "true"
-                .equalsIgnoreCase(System.getProperty("graalvm-installed")) ||
-              "true".equalsIgnoreCase(System.getenv("GRAALVM_INSTALLED"))
-          Def.setting(installed)
-        }
-        .value,
     nativeImageGraalHome :=
       Def
         .taskDyn {
@@ -284,7 +288,6 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageTestCommand := nativeImageCommand.value,
     nativeImageAgentOutputDir := target.value / "native-image-configs",
     nativeImageTestAgentOutputDir := nativeImageAgentOutputDir.value,
-    nativeImageAgentMerge := false,
     nativeImageTestAgentMerge := nativeImageAgentMerge.value,
     nativeImageRunAgent := {
       val _ = nativeImageCommand.value
