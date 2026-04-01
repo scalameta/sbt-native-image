@@ -4,7 +4,6 @@ lazy val example = project
     Compile / mainClass := Some("example.Hello3"),
     nativeImageOptions ++= Seq(
       "--no-fallback",
-      s"-H:ReflectionConfigurationFiles=${ target.value / "native-image-configs" / "reflect-config.json" }"
     ),
     nativeImageCommand := List(
       sys.env.getOrElse(

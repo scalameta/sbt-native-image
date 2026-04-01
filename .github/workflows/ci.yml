@@ -27,7 +27,7 @@ jobs:
       - uses: actions/setup-java@v5
         with:
           distribution: graalvm
-          java-version: 21
+          java-version: 24
       - uses: sbt/setup-sbt@v1
       - name: Setup Windows C++ toolchain
         uses: ilammy/msvc-dev-cmd@v1
@@ -36,14 +36,14 @@ jobs:
         if: ${{ matrix.jobtype == 1 }}
         shell: bash
         run: |
-          export GRAALVM_HOME=$JAVA_HOME_21_X64
+          export GRAALVM_HOME=$JAVA_HOME_24_X64
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt ++2.12.x test plugin/scripted
       - name: sbt test plugin/scripted (2)
         if: ${{ matrix.jobtype == 2 }}
         shell: bash
         run: |
-          export GRAALVM_HOME=$JAVA_HOME_21_X64
+          export GRAALVM_HOME=$JAVA_HOME_24_X64
           export NATIVE_IMAGE_COMMAND=$GRAALVM_HOME/bin/native-image
           sbt ++3.x test plugin/scripted
   check:
