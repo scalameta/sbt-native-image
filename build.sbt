@@ -1,4 +1,5 @@
 def scala212 = "2.12.20"
+def scala3 = "3.8.2"
 
 inThisBuild(
   List(
@@ -40,13 +41,21 @@ commands +=
 
 lazy val plugin = project
   .in(file("plugin"))
+  .enablePlugins(SbtPlugin, BuildInfoPlugin)
   .settings(
     moduleName := "sbt-native-image",
-    sbtPlugin := true,
+    addSbtPlugin("com.github.sbt" % "sbt2-compat" % "0.1.0"),
     scalacOptions ++= {
       scalaBinaryVersion.value match {
         case "2.12" =>
-          Seq("-release:8", "-Xlint", "-Ywarn-unused-import", "-Werror")
+          Seq(
+            "-release:8",
+            "-Xlint",
+            "-Ywarn-unused-import",
+            "-Werror",
+            "-Xsource:3",
+            "-feature"
+          )
         case "3" =>
           Nil
       }
@@ -56,7 +65,7 @@ lazy val plugin = project
         case "2.12" =>
           "1.5.8"
         case _ =>
-          "2.0.0-RC8"
+          "2.0.0-RC10"
       }
     },
     scriptedSbt := {
@@ -67,14 +76,13 @@ lazy val plugin = project
           (pluginCrossBuild / sbtVersion).value
       }
     },
-    crossScalaVersions := List(scala212),
+    crossScalaVersions := List(scala212, scala3),
     buildInfoPackage := "sbtnativeimage",
     buildInfoKeys := Seq[BuildInfoKey](version),
     scriptedBufferLog := false,
     scriptedLaunchOpts ++=
       Seq("-Xmx2048M", s"-Dplugin.version=${version.value}")
   )
-  .enablePlugins(ScriptedPlugin, BuildInfoPlugin)
 
 lazy val example = project
   .in(file("example"))

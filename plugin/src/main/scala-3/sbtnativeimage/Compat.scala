@@ -1,0 +1,3 @@
+package sbtnativeimage
+
+object Compat
