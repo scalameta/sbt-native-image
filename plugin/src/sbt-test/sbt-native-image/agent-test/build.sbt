@@ -7,7 +7,7 @@ lazy val example = project
       "--initialize-at-build-time=scala.collection.immutable.VM",
     ),
     Test / mainClass := Some("org.scalatest.tools.Runner"),
-    nativeImageTestRunOptions ++= Seq("-o", "-R", classDirectory.in(Test).value.absolutePath),
+    nativeImageTestRunOptions ++= Seq("-o", "-R", (Test / classDirectory).value.absolutePath),
     nativeImageCommand := List(
       sys.env.getOrElse(
         "NATIVE_IMAGE_COMMAND",
