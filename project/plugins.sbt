@@ -8,12 +8,12 @@ addSbtPlugin("com.github.sbt" % "sbt2-compat" % "0.1.0")
 Compile / scalacOptions += "-Xsource:3"
 Compile / unmanagedSourceDirectories ++=
   List(
-    baseDirectory.in(ThisBuild).value.getParentFile / "plugin" / "src" /
+    (ThisBuild / baseDirectory).value.getParentFile / "plugin" / "src" /
       "main" / "scala",
-    baseDirectory.in(ThisBuild).value.getParentFile / "plugin" / "src" /
+    (ThisBuild / baseDirectory).value.getParentFile / "plugin" / "src" /
       "main" / "scala-2.12"
   )
 
 Compile / unmanagedResourceDirectories +=
-  baseDirectory.in(ThisBuild).value.getParentFile / "plugin" / "src" / "main" /
+  (ThisBuild / baseDirectory).value.getParentFile / "plugin" / "src" / "main" /
     "resources"
