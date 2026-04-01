@@ -2,7 +2,7 @@ package sbtnativeimage
 
 import scala.language.implicitConversions
 
-import sbt.*
+import sbt._
 
 object Compat {
   implicit def richDef(o: Def.type): RichDef = new RichDef()

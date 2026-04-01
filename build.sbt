@@ -17,8 +17,6 @@ inThisBuild(
         )
       ),
     scalaVersion := scala212,
-    scalafixDependencies +=
-      "com.github.liancheng" %% "organize-imports" % "0.5.0",
     scalafixCaching := true,
     semanticdbEnabled := true,
     semanticdbVersion := "4.13.9"
