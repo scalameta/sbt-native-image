@@ -62,6 +62,7 @@ object NativeImagePlugin extends AutoPlugin {
     lazy val nativeImageInstalled: SettingKey[Boolean] = settingKey[Boolean](
       "Whether GraalVM is manually installed or should be downloaded with coursier."
     )
+    @transient
     lazy val nativeImageGraalHome: TaskKey[NioPath] = taskKey[NioPath](
       "Path to GraalVM home directory."
     )
