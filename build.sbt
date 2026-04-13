@@ -63,7 +63,7 @@ lazy val plugin = project
         case "2.12" =>
           "1.5.8"
         case _ =>
-          "2.0.0-RC10"
+          "2.0.0-RC12"
       }
     },
     scriptedSbt := {
