@@ -1,6 +1,9 @@
 @echo off
 
-
+setlocal EnableDelayedExpansion
+(set LF=^
+%=%
+)
 
 @REM set %HOME% to equivalent of $HOME
 if "%HOME%" == "" (set HOME=%HOMEDRIVE%%HOMEPATH%)
@@ -63,13 +66,16 @@ goto Win9xApp
 @REM Reaching here means variables are defined and arguments have been captured
 :endInit
 
-set JAR_PATH=%~dp0\%~n0
-SET PROG_DIR=%~dp0
-SET PSEP=;
+set PROG_DIR=%~dp0
+@REM Remove trailing backslash from PROG_DIR
+if %PROG_DIR:~-1%==\ set PROG_DIR=%PROG_DIR:~0,-1%
+set JAR_PATH=%PROG_DIR%\%~n0
+set PSEP=;
 
 @REM Start Java program
 :runm2
-SET CMDLINE=%JAVA_EXE%  %JAVA_OPTS% -Dprog.dir="%PROG_DIR:\=\\%" -jar "%JAR_PATH%" %CMD_LINE_ARGS%
+call set _JAVA_OPTS=%%JAVA_OPTS:!LF!= %%
+set CMDLINE=%JAVA_EXE% %_JAVA_OPTS% -Dprog.dir="%PROG_DIR%" -jar "%JAR_PATH%" %CMD_LINE_ARGS%
 %CMDLINE%
 if ERRORLEVEL 1 goto error
 goto end
