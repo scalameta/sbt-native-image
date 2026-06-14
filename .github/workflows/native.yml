@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-15-intel, ubuntu-latest]
+        os: [macos-14, macos-15-intel, ubuntu-latest, windows-2025]
         include:
           # Replace "example" with the name your binary
           - os: macos-14
@@ -25,11 +25,14 @@ jobs:
           - os: ubuntu-latest
             uploaded_filename: example-x86_64-pc-linux
             local_path: example/target/native-image/example
-
-          # TODO: Fix Windows support
-          # - os: windows-2022
-          #   uploaded_filename: example-x86_64-pc-win32.exe
-          #   local_path: example\target\native-image\example.exe
+          - os: windows-2025
+            uploaded_filename: example-x86_64-pc-win32.exe
+            local_path: example\target\native-image\example.exe
+            arch: x64
+          - os: windows-2022
+            uploaded_filename: example2022-x86_64-pc-win32.exe
+            local_path: example\target\native-image\example.exe
+            arch: x64
     env:
       # define Java options for both official sbt and sbt-extras
       JAVA_OPTS: -Xms2048M -Xmx2048M -Xss6M -XX:ReservedCodeCacheSize=256M -Dfile.encoding=UTF-8
@@ -46,7 +49,9 @@ jobs:
       - run: git fetch --tags || true
       - name: Setup Windows C++ toolchain
         uses: ilammy/msvc-dev-cmd@v1
-        if: ${{ matrix.os == 'windows-latest' }}
+        if: runner.os == 'Windows'
+        with:
+          arch: ${{ matrix.arch }}
       - name: Build
         shell: bash
         run: |
