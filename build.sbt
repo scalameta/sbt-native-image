@@ -28,13 +28,13 @@ publish / skip := true
 
 commands +=
   Command.command("fixAll") { s =>
-    "scalafixAll" :: "scalafmtAll" :: "scalafmtSbt" :: s
+    "scalafixAll" :: "+ scalafmtAll" :: "scalafmtSbt" :: s
   }
 
 commands +=
   Command.command("checkAll") { s =>
-    "scalafmtCheckAll" :: "scalafmtSbtCheck" :: "scalafixAll --check" ::
-      "publishLocal" :: s
+    "+ scalafmtCheckAll" :: "scalafmtSbtCheck" :: "scalafixAll --check" ::
+      "+ publishLocal" :: s
   }
 
 lazy val plugin = project
