@@ -151,9 +151,9 @@ object NativeImagePlugin extends AutoPlugin {
   }
 
   override lazy val globalSettings: Seq[Def.Setting[?]] = List(
-    nativeImageJvm := "graalvm-java17",
+    nativeImageJvm := "graalvm-java25",
     nativeImageJvmIndex := "cs",
-    nativeImageVersion := "22.3.1",
+    nativeImageVersion := "25.0.1",
     nativeImageAgentMerge := false,
     nativeImageReady := {
       val s = streams.value
