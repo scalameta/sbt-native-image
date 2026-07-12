@@ -9,7 +9,6 @@ import java.util.jar.Attributes
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
-import scala.annotation.nowarn
 import scala.collection.mutable
 import scala.sys.process.Process
 import scala.util.Properties
@@ -292,32 +291,46 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageTestAgentMerge := nativeImageAgentMerge.value,
     nativeImageRunAgent := {
       val _ = nativeImageCommand.value
-      val graalHome = nativeImageGraalHome.value.toFile
-      val agentConfig =
-        if (nativeImageAgentMerge.value)
-          "config-merge-dir"
-        else
-          "config-output-dir"
-      val agentOption =
-        s"-agentlib:native-image-agent=$agentConfig=${nativeImageAgentOutputDir.value}"
-      val tpr = thisProjectRef.value
-      val settings = Seq(
-        tpr / Compile / run / fork := true,
-        tpr / Compile / run / javaHome := Some(graalHome),
-        tpr / Compile / run / javaOptions += agentOption
-      )
-      val state0 = state.value
-      val extracted = Project.extract(state0)
-      val newState = extracted.appendWithSession(settings, state0)
-      val arguments = spaceDelimited("<arg>").parsed
-      val input =
-        if (arguments.isEmpty)
-          ""
-        else
-          arguments.mkString(" ")
-      Project
-        .extract(newState)
-        .runInputTask(tpr / Compile / run, input, newState)
+      val command = mutable.ListBuffer.empty[String]
+      command +=
+        (nativeImageGraalHome.value.toFile / "bin" / "java").absolutePath
+      command ++= (run / javaOptions).value
+      command +=
+        agentOption(
+          nativeImageAgentMerge.value,
+          nativeImageAgentOutputDir.value
+        )
+      command += "-cp"
+      command += {
+        val _ = (Compile / compile).value
+        val cp = (Compile / fullClasspath).value.map(_.data)
+        val manifest = (NativeImageInternal / target).value / "manifest.jar"
+        manifest.getParentFile.mkdirs()
+        implicit val conv: FileConverter = fileConverter.value
+        createManifestJar(manifest, cp)
+        manifest.absolutePath
+      }
+      command +=
+        (NativeImage / mainClass)
+          .value
+          .getOrElse(
+            throw new MessageOnlyException(
+              "no mainClass is specified. " +
+                "To fix this problem, update build.sbt to include the settings " +
+                "`mainClass := Some(\"com.MainClass\")`"
+            )
+          )
+      spaceDelimited("<arg>").parsed match {
+        case Nil =>
+          ()
+        case args =>
+          command ++= args
+      }
+
+      streams.value.log.info(command.mkString(" "))
+      if (Process(command, cwd = Some(baseDirectory.value)).! != 0)
+        throw new Exception(s"Native image build failed:\n $command")
+
     },
     nativeImageTestRunAgent := {
       val _ = nativeImageTestCommand.value
