@@ -1,5 +1,5 @@
-def scala212 = "2.12.20"
-def scala3 = "3.8.2"
+def scala212 = "2.12.21"
+def scala3 = "3.8.4"
 
 inThisBuild(
   List(
