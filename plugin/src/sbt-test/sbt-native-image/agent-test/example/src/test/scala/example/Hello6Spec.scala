@@ -12,10 +12,10 @@ class Hello6Spec extends AnyFlatSpec {
 
   it should "append Hello6 output" in {
     Hello6.main(Array.empty)
-    assert(new File("Hello6.obtained").exists())
+    assert(new File("hello6.obtained").exists())
 
     Files.write(
-      Paths.get("Hello6.obtained"),
+      Paths.get("hello6.obtained"),
       "-tested".getBytes(StandardCharsets.UTF_8),
       StandardOpenOption.APPEND
     )
