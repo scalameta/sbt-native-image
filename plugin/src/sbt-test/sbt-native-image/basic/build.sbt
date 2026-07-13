@@ -1,7 +1,7 @@
 lazy val example = project
   .settings(
     scalaVersion := "2.12.21",
-    Compile / mainClass := Some("example.Hello2"),
+    Compile / mainClass := Some("example.Hello1"),
     nativeImageCommand := List(
       sys.env.getOrElse(
         "NATIVE_IMAGE_COMMAND",
