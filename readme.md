@@ -281,7 +281,7 @@ Then, make sure to generate the reflection configuration with
 # Step 0: Start sbt shell.
 $ sbt
 # Step 1: Run application on the JVM with native-image agent.
-> myProject/nativeImageRunAgent " arg1 arg2"
+> myProject/nativeImageRunAgent arg1 arg2
 # Step 2: Create native-image binary with assisted configuration.
 > myProject/nativeImage
 # Step 3: Run native-image that was generated with assisted configuration.
