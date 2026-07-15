@@ -1,4 +1,4 @@
-$ absent hello2.obtained
+$ absent hello1.obtained
 > example/nativeImage
 > example/nativeImageRun
-$ must-mirror hello2.expected hello2.obtained
+$ must-mirror hello1.expected hello1.obtained
