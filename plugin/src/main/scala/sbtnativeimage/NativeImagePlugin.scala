@@ -9,7 +9,6 @@ import java.util.jar.Attributes
 import java.util.jar.JarOutputStream
 import java.util.jar.Manifest
 
-import scala.annotation.nowarn
 import scala.collection.mutable
 import scala.sys.process.Process
 import scala.util.Properties
@@ -151,9 +150,9 @@ object NativeImagePlugin extends AutoPlugin {
   }
 
   override lazy val globalSettings: Seq[Def.Setting[?]] = List(
-    nativeImageJvm := "graalvm-java17",
+    nativeImageJvm := "graalvm-java25",
     nativeImageJvmIndex := "cs",
-    nativeImageVersion := "22.3.1",
+    nativeImageVersion := "25.0.1",
     nativeImageAgentMerge := false,
     nativeImageReady := {
       val s = streams.value
@@ -289,81 +288,84 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageTestAgentMerge := nativeImageAgentMerge.value,
     nativeImageRunAgent := {
       val _ = nativeImageCommand.value
-      val graalHome = nativeImageGraalHome.value.toFile
-      val agentConfig =
-        if (nativeImageAgentMerge.value)
-          "config-merge-dir"
-        else
-          "config-output-dir"
-      val agentOption =
-        s"-agentlib:native-image-agent=$agentConfig=${nativeImageAgentOutputDir
-            .value}"
-      val tpr = thisProjectRef.value
-      val settings = Seq(
-        tpr / Compile / run / fork := true,
-        tpr / Compile / run / javaHome := Some(graalHome),
-        tpr / Compile / run / javaOptions += agentOption
-      )
-      val state0 = state.value
-      val extracted = Project.extract(state0)
-      val newState = extracted.appendWithSession(settings, state0)
-      val arguments = spaceDelimited("<arg>").parsed
-      val input =
-        if (arguments.isEmpty)
-          ""
-        else
-          arguments.mkString(" ")
-      Project
-        .extract(newState)
-        .runInputTask(tpr / Compile / run, input, newState)
+      val command = mutable.ListBuffer.empty[String]
+      command +=
+        (nativeImageGraalHome.value.toFile / "bin" / "java").absolutePath
+      command ++= (run / javaOptions).value
+      command +=
+        agentOption(
+          nativeImageAgentMerge.value,
+          nativeImageAgentOutputDir.value
+        )
+      command += "-cp"
+      command += {
+        val _ = (Compile / compile).value
+        val cp = (Compile / fullClasspath).value.map(_.data)
+        val manifest = (NativeImageInternal / target).value / "manifest.jar"
+        manifest.getParentFile.mkdirs()
+        implicit val conv: FileConverter = fileConverter.value
+        createManifestJar(manifest, cp)
+        manifest.absolutePath
+      }
+      command +=
+        (NativeImage / mainClass)
+          .value
+          .getOrElse(
+            throw new MessageOnlyException(
+              "no mainClass is specified. " +
+                "To fix this problem, update build.sbt to include the settings " +
+                "`mainClass := Some(\"com.MainClass\")`"
+            )
+          )
+      spaceDelimited("<arg>").parsed match {
+        case Nil =>
+          ()
+        case args =>
+          command ++= args
+      }
+
+      streams.value.log.info(command.mkString(" "))
+      if (Process(command, cwd = Some(baseDirectory.value)).! != 0)
+        throw new Exception(s"Native image build failed:\n $command")
+
     },
     nativeImageTestRunAgent := {
       val _ = nativeImageTestCommand.value
-      val graalHome = nativeImageGraalHome.value.toFile
-
-      val agentConfig =
-        if (nativeImageTestAgentMerge.value)
-          "config-merge-dir"
-        else
-          "config-output-dir"
-      val agentOption =
-        s"-agentlib:native-image-agent=$agentConfig=${nativeImageTestAgentOutputDir
-            .value}"
-
-      val options = (Test / run / javaOptions).value ++ Seq(agentOption)
-      val conv0 = fileConverter.value
-      implicit val conv: FileConverter = conv0
-
-      @nowarn
-      val a = (Test / compile).value
-      val main = (NativeImageTest / mainClass).value
-      val cp = (Test / fullClasspath).value.map(_.data)
-      val manifest = (NativeImageTestInternal / target).value / "manifest.jar"
-      manifest.getParentFile().mkdirs()
-      createManifestJar(manifest, cp)
-      val nativeClasspath = manifest.absolutePath
-
       val command = mutable.ListBuffer.empty[String]
-      command += (graalHome / "bin" / "java").absolutePath
-      command ++= options
-      command += "-cp"
-      command += nativeClasspath
       command +=
-        main.getOrElse(
-          throw new MessageOnlyException(
-            "no mainClass is specified for tests. " +
-              "To fix this problem, update build.sbt to include the settings " +
-              "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
-          )
+        (nativeImageGraalHome.value.toFile / "bin" / "java").absolutePath
+      command ++= (Test / run / javaOptions).value
+      command +=
+        agentOption(
+          nativeImageTestAgentMerge.value,
+          nativeImageTestAgentOutputDir.value
         )
+      command += "-cp"
+      command += {
+        val _ = (Test / compile).value
+        val cp = (Test / fullClasspath).value.map(_.data)
+        val manifest = (NativeImageTestInternal / target).value / "manifest.jar"
+        manifest.getParentFile.mkdirs()
+        implicit val conv: FileConverter = fileConverter.value
+        createManifestJar(manifest, cp)
+        manifest.absolutePath
+      }
+      command +=
+        (NativeImageTest / mainClass)
+          .value
+          .getOrElse(
+            throw new MessageOnlyException(
+              "no mainClass is specified for tests. " +
+                "To fix this problem, update build.sbt to include the settings " +
+                "`mainClass.in(Test) := Some(\"com.MainTestClass\")`"
+            )
+          )
       command ++= nativeImageTestRunOptions.value
 
-      val projectRoot = baseDirectory.value
       streams.value.log.info(command.mkString(" "))
-      val exitCode = Process(command, cwd = Some(projectRoot)).!
-      if (exitCode != 0) {
-        throw new Exception(s"Native image build failed:\n ${command}")
-      }
+      if (Process(command, cwd = Some(baseDirectory.value)).! != 0)
+        throw new Exception(s"Native image build failed:\n $command")
+
     },
     nativeImageOutput := {
       val conv0 = fileConverter.value
@@ -529,6 +531,13 @@ object NativeImagePlugin extends AutoPlugin {
         toFileRef(out)
       }
   )
+
+  private def agentOption(merge: Boolean, outputDir: File): String = {
+    if (merge)
+      s"-agentlib:native-image-agent=config-merge-dir=$outputDir"
+    else
+      s"-agentlib:native-image-agent=config-output-dir=$outputDir"
+  }
 
   private def isCI = "true".equalsIgnoreCase(System.getenv("CI"))
 

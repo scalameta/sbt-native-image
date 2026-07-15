@@ -1,5 +1,5 @@
-def scala212 = "2.12.20"
-def scala3 = "3.8.2"
+def scala212 = "2.12.21"
+def scala3 = "3.8.4"
 
 inThisBuild(
   List(
@@ -28,13 +28,13 @@ publish / skip := true
 
 commands +=
   Command.command("fixAll") { s =>
-    "scalafixAll" :: "scalafmtAll" :: "scalafmtSbt" :: s
+    "scalafixAll" :: "+ scalafmtAll" :: "scalafmtSbt" :: s
   }
 
 commands +=
   Command.command("checkAll") { s =>
-    "scalafmtCheckAll" :: "scalafmtSbtCheck" :: "scalafixAll --check" ::
-      "publishLocal" :: s
+    "+ scalafmtCheckAll" :: "scalafmtSbtCheck" :: "scalafixAll --check" ::
+      "+ publishLocal" :: s
   }
 
 lazy val plugin = project
@@ -63,7 +63,7 @@ lazy val plugin = project
         case "2.12" =>
           "1.5.8"
         case _ =>
-          "2.0.0-RC12"
+          "2.0.2"
       }
     },
     scriptedSbt := {
