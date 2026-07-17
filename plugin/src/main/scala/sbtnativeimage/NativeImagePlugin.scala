@@ -172,13 +172,15 @@ object NativeImagePlugin extends AutoPlugin {
       Def
         .settingDyn {
           val installed =
-            "true"
-              .equalsIgnoreCase(System.getProperty("native-image-installed")) ||
-              "true"
-                .equalsIgnoreCase(System.getenv("NATIVE_IMAGE_INSTALLED")) ||
-              "true"
-                .equalsIgnoreCase(System.getProperty("graalvm-installed")) ||
-              "true".equalsIgnoreCase(System.getenv("GRAALVM_INSTALLED"))
+            "true".equalsIgnoreCase(
+              System.getProperty("native-image-installed")
+            ) ||
+              "true".equalsIgnoreCase(
+                System.getenv("NATIVE_IMAGE_INSTALLED")
+              ) ||
+              "true".equalsIgnoreCase(
+                System.getProperty("graalvm-installed")
+              ) || "true".equalsIgnoreCase(System.getenv("GRAALVM_INSTALLED"))
           Def.setting(installed)
         }
         .value
@@ -186,21 +188,16 @@ object NativeImagePlugin extends AutoPlugin {
 
   override lazy val projectSettings: Seq[Def.Setting[?]] = List(
     libraryDependencies += "org.scalameta" % "svm-subs" % "101.0.0",
-    NativeImage / target :=
-      (Compile / target).value / "native-image",
-    NativeImageTest / target :=
-      (Test / target).value / "native-image-test",
+    NativeImage / target := (Compile / target).value / "native-image",
+    NativeImageTest / target := (Test / target).value / "native-image-test",
     NativeImageInternal / target :=
       (Compile / target).value / "native-image-internal",
     NativeImageTestInternal / target :=
       (Test / target).value / "native-image-test-internal",
     NativeImage / name := name.value,
-    NativeImageTest / name :=
-      (Test / name).value,
-    NativeImage / mainClass :=
-      (Compile / mainClass).value,
-    NativeImageTest / mainClass :=
-      (Test / mainClass).value,
+    NativeImageTest / name := (Test / name).value,
+    NativeImage / mainClass := (Compile / mainClass).value,
+    NativeImageTest / mainClass := (Test / mainClass).value,
     nativeImageOptions := List(),
     nativeImageTestOptions := nativeImageOptions.value,
     nativeImageTestRunOptions := List(),
@@ -427,11 +424,10 @@ object NativeImagePlugin extends AutoPlugin {
     },
     nativeImage :=
       Def.uncached {
-        val _ =
-          (
-            (Compile / products).value,
-            (Compile / compile / compileInputs2).value
-          )
+        val _ = (
+          (Compile / products).value,
+          (Compile / compile / compileInputs2).value
+        )
         val main = (NativeImage / mainClass).value
         val binaryName: ArtifactPath = nativeImageOutput.value
         val cp = (Compile / fullClasspath).value.map(_.data)
@@ -581,9 +577,9 @@ object NativeImagePlugin extends AutoPlugin {
         try {
           manifestPath.relativize(path).toString
         } catch {
-          //java.lang.IllegalArgumentException: 'other' has different root
-          //this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
-          //copy dependency next to manifest as fallback
+          // java.lang.IllegalArgumentException: 'other' has different root
+          // this happens if the dependency jar resides on a different drive then the manifest, i.e. C:\Coursier\Cache and D:\myapp\target
+          // copy dependency next to manifest as fallback
           case _: IllegalArgumentException =>
             import java.nio.file.Files
             import java.nio.file.StandardCopyOption
