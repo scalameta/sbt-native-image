@@ -1,0 +1,6 @@
+> nativeImage
+> writeMetadataRepository
+> set nativeImageReachabilityMetadata := true
+> set expectedMetadata := "hamcrest/exact,required/required"
+> nativeImage
+> nativeImageTest
