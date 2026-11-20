@@ -187,6 +187,8 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageJvmIndex := "cs",
     nativeImageVersion := "25.0.1",
     nativeImageAgentMerge := false,
+    nativeImageReachabilityMetadata := false,
+    nativeImageReachabilityMetadataVersion := "0.11.5",
     nativeImageReady := {
       val s = streams.value
 
@@ -231,8 +233,6 @@ object NativeImagePlugin extends AutoPlugin {
     NativeImageTest / name := (Test / name).value,
     NativeImage / mainClass := (Compile / mainClass).value,
     NativeImageTest / mainClass := (Test / mainClass).value,
-    nativeImageReachabilityMetadata := false,
-    nativeImageReachabilityMetadataVersion := "0.11.5",
     metadataArchive :=
       Def.uncached {
         val name = "graalvm-reachability-metadata"
