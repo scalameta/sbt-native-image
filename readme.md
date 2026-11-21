@@ -119,6 +119,19 @@ for available options. Empty by default.
 
 **Example usage**: `nativeImageOptions ++= List("--initialize-at-build-time")`
 
+### Reachability metadata
+
+Set `nativeImageReachabilityMetadata := true` to use the
+[GraalVM Reachability Metadata Repository](https://github.com/oracle/graalvm-reachability-metadata).
+Both `nativeImage` and `nativeImageTest` select metadata for their own resolved
+classpath, including transitive dependencies. Dependencies without an entry
+are skipped. Your existing native-image options and agent configuration still
+apply.
+
+The feature is off by default. To select a different repository ZIP, set
+`nativeImageReachabilityMetadataVersion` to a Native Build Tools artifact
+version compatible with your GraalVM. The default is `0.11.5`.
+
 ### `nativeImageRun`
 
 **Type**: `InputKey[File]`

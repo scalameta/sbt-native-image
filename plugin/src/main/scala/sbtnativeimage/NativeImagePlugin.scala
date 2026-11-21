@@ -126,11 +126,44 @@ object NativeImagePlugin extends AutoPlugin {
         "Extra command-line arguments that should be forwarded to the native-image optimizer."
       )
 
+    lazy val nativeImageReachabilityMetadata: SettingKey[Boolean] =
+      settingKey[Boolean]("Use the GraalVM reachability metadata repository.")
+    lazy val nativeImageReachabilityMetadataVersion: SettingKey[String] =
+      settingKey[String]("Native Build Tools version of the metadata ZIP.")
+
     private lazy val assistedConfigurationOfNativeImageBuildsLink =
       "https://www.graalvm.org/reference-manual/native-image/BuildConfiguration/#assisted-configuration-of-native-image-builds"
   }
 
   import autoImport._
+
+  private val metadataArchive = taskKey[File]("Reachability metadata ZIP.")
+  private val metadataInput = taskKey[Option[(File, Seq[ModuleID])]]("Metadata")
+
+  private def reachabilityInputs(config: Configuration) = Def.taskDyn {
+    if (nativeImageReachabilityMetadata.value) {
+      Def.task {
+        implicit val conv: FileConverter = fileConverter.value
+        val classpath = (config / fullClasspath)
+          .value
+          .map(entry => toNioPath(entry.data).toAbsolutePath.normalize())
+          .toSet
+        val modules = update.value.configurations.flatMap(_.modules)
+        val linked = modules.filter { report =>
+          !report.evicted &&
+          report
+            .artifacts
+            .exists { case (_, file) =>
+              classpath.contains(file.toPath.toAbsolutePath.normalize())
+            }
+        }
+        Option(
+          (metadataArchive.value, linked.map(_.module).distinct: Seq[ModuleID])
+        )
+      }
+    } else
+      Def.task(Option.empty[(File, Seq[ModuleID])])
+  }
 
   private def copyResource(filename: String, outDir: File): File = {
     Files.createDirectories(outDir.toPath)
@@ -154,6 +187,8 @@ object NativeImagePlugin extends AutoPlugin {
     nativeImageJvmIndex := "cs",
     nativeImageVersion := "25.0.1",
     nativeImageAgentMerge := false,
+    nativeImageReachabilityMetadata := false,
+    nativeImageReachabilityMetadataVersion := "0.11.5",
     nativeImageReady := {
       val s = streams.value
 
@@ -198,6 +233,35 @@ object NativeImagePlugin extends AutoPlugin {
     NativeImageTest / name := (Test / name).value,
     NativeImage / mainClass := (Compile / mainClass).value,
     NativeImageTest / mainClass := (Test / mainClass).value,
+    metadataArchive :=
+      Def.uncached {
+        val name = "graalvm-reachability-metadata"
+        val version = nativeImageReachabilityMetadataVersion.value
+        val artifact = Artifact(name, "zip", "zip", "repository")
+        val module = ("org.graalvm.buildtools" % name % version)
+          .artifacts(artifact)
+          .intransitive()
+        val resolution = dependencyResolution.value
+        val descriptor = resolution.wrapDependencyInModule(module)
+        val report = resolution
+          .update(
+            descriptor,
+            updateConfiguration.value,
+            sbt.librarymanagement.UnresolvedWarningConfiguration(),
+            streams.value.log
+          )
+          .fold(warning => throw warning.resolveException, identity)
+        report
+          .allFiles
+          .headOption
+          .getOrElse {
+            throw new MessageOnlyException(
+              s"Missing GraalVM reachability metadata ZIP for version $version"
+            )
+          }
+      },
+    NativeImageInternal / metadataInput := reachabilityInputs(Compile).value,
+    NativeImageTestInternal / metadataInput := reachabilityInputs(Test).value,
     nativeImageOptions := List(),
     nativeImageTestOptions := nativeImageOptions.value,
     nativeImageTestRunOptions := List(),
@@ -451,6 +515,7 @@ object NativeImagePlugin extends AutoPlugin {
         command += "-cp"
         command += nativeClasspath
         command ++= nativeImageOptions.value
+        val metadataOptionIndex = command.size
         command +=
           main.getOrElse(
             throw new MessageOnlyException(
@@ -462,10 +527,17 @@ object NativeImagePlugin extends AutoPlugin {
         command += artifactPathToFile(binaryName).absolutePath
 
         // Start native-image linker.
-        streams.value.log.info(command.mkString(" "))
         val cwd = (NativeImage / target).value
         cwd.mkdirs()
-        val exit = Process(command, cwd = Some(cwd)).!
+        val log = streams.value.log
+        val exit =
+          ReachabilityMetadata.withOptions(
+            (NativeImageInternal / metadataInput).value
+          ) { options =>
+            command.insertAll(metadataOptionIndex, options)
+            log.info(command.mkString(" "))
+            Process(command, cwd = Some(cwd)).!
+          }
         if (exit != 0) {
           throw new MessageOnlyException(
             s"native-image command failed with exit code '$exit'"
@@ -504,6 +576,7 @@ object NativeImagePlugin extends AutoPlugin {
         command ++= nativeImageTestOptions.value
         command += "-cp"
         command += nativeClasspath
+        val metadataOptionIndex = command.size
         command +=
           main.getOrElse(
             throw new MessageOnlyException(
@@ -515,10 +588,17 @@ object NativeImagePlugin extends AutoPlugin {
         command += artifactPathToFile(binaryName).absolutePath
 
         // Start native-image linker.
-        streams.value.log.info(command.mkString(" "))
         val cwd = (NativeImageTest / target).value
         cwd.mkdirs()
-        val exit = Process(command, cwd = Some(cwd)).!
+        val log = streams.value.log
+        val exit =
+          ReachabilityMetadata.withOptions(
+            (NativeImageTestInternal / metadataInput).value
+          ) { options =>
+            command.insertAll(metadataOptionIndex, options)
+            log.info(command.mkString(" "))
+            Process(command, cwd = Some(cwd)).!
+          }
         if (exit != 0) {
           throw new MessageOnlyException(
             s"native-image command failed with exit code '$exit'"
